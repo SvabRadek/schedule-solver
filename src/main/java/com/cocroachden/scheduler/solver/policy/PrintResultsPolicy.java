@@ -4,13 +4,12 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import com.cocroachden.scheduler.solver.EmployeeSchedule;
 import com.cocroachden.scheduler.solver.command.startsolving.SolutionHasBeenFound;
-import com.cocroachden.scheduler.solver.utils.ScheduleWriter;
+import com.cocroachden.scheduler.solver.utils.ScheduleParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -23,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class PrintResultsPolicy {
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final ScheduleWriter writer;
+    private final ScheduleParser parser;
     private final SolutionManager<EmployeeSchedule, HardSoftScore> solutionManager;
     private ScheduledFuture<?> scheduledTask;
 
@@ -38,11 +37,7 @@ public class PrintResultsPolicy {
         scheduledTask = executor.schedule(() -> {
             var path = Path.of(System.getProperty("user.dir") + "/Vysledek.xlsx");
             log.info("Writing latest solution to file '{}'", path);
-            try {
-                writer.write(event.schedule(), path);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+            parser.write(event.schedule(), path.toFile());
         }, 5, TimeUnit.SECONDS);
 
     }

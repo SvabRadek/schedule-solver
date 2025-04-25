@@ -1,29 +1,46 @@
 package com.cocroachden.scheduler.solver.utils;
 
+import ai.timefold.solver.persistence.common.api.domain.solution.SolutionFileIO;
 import com.cocroachden.scheduler.domain.AvailabilityId;
 import com.cocroachden.scheduler.domain.EmployeeId;
 import com.cocroachden.scheduler.domain.ShiftAssignmentId;
 import com.cocroachden.scheduler.solver.*;
+import lombok.SneakyThrows;
+import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 
+import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.file.Path;
+import java.io.FileOutputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
-public class ScheduleParser {
+public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
 
+    public static final String FILE_EXTENSION = "xlsx";
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("d.M.yyyy");
 
-    public EmployeeSchedule convert(Path path) throws IOException {
+    @Override
+    public String getInputFileExtension() {
+        return FILE_EXTENSION;
+    }
+
+    @Override
+    public String getOutputFileExtension() {
+        return FILE_EXTENSION;
+    }
+
+    @SneakyThrows
+    public EmployeeSchedule read(File inputFile) {
         try (
-                FileInputStream fis = new FileInputStream(path.toFile());
+                FileInputStream fis = new FileInputStream(inputFile);
                 var workbook = new XSSFWorkbook(fis)) {
             var schedule = new EmployeeSchedule();
             var scheduleSheet = workbook.getSheet("Rozvrh");
@@ -38,6 +55,50 @@ public class ScheduleParser {
             this.readSchedule(scheduleSheet, schedule);
             this.readSettings(settingsSheet, schedule);
             return schedule;
+        }
+    }
+
+    @SneakyThrows
+    public void write(EmployeeSchedule schedule, File output) {
+        var wb = new XSSFWorkbook();
+        var headerWorkdayStyle = wb.createCellStyle();
+        var headerWeekendStyle = wb.createCellStyle();
+        var assignmentStyle = wb.createCellStyle();
+        headerWorkdayStyle.getFont().setBold(true);
+        headerWorkdayStyle.setFillForegroundColor(IndexedColors.BLUE.index);
+        headerWeekendStyle.getFont().setBold(true);
+        headerWeekendStyle.setFillForegroundColor(IndexedColors.RED.index);
+        assignmentStyle.getFont().setBold(true);
+        var sheet = wb.createSheet("Rozvrh");
+        var header = sheet.createRow(0);
+        var col = new AtomicInteger(1);
+        schedule.getStartDate()
+                .datesUntil(schedule.getEndDate().plusDays(1))
+                .forEach(localDate -> {
+                    var cell = header.createCell(col.getAndIncrement());
+                    cell.setCellValue(localDate.getDayOfMonth());
+                    if (localDate.getDayOfWeek().getValue() > 5) {
+                        cell.setCellStyle(headerWeekendStyle);
+                    } else {
+                        cell.setCellStyle(headerWorkdayStyle);
+                    }
+                });
+        var row = new AtomicInteger(1);
+        schedule.getEmployees().forEach(employee -> {
+            var employeeRow = sheet.createRow(row.getAndIncrement());
+            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id());
+            schedule.getShiftAssignments().stream()
+                    .filter(shiftAssignment -> shiftAssignment.getEmployee().equals(employee))
+                    .forEach(shiftAssignment -> {
+                        var daysSinceScheduleStart = (int) ChronoUnit.DAYS.between(schedule.getStartDate(), shiftAssignment.getDate());
+                        var cell = employeeRow.createCell(daysSinceScheduleStart + 1);
+                        cell.setCellValue(shiftAssignment.getShiftType().name().substring(0, 1));
+                        cell.setCellStyle(assignmentStyle);
+                    });
+        });
+        try (var outStream = new FileOutputStream(output)) {
+            wb.write(outStream);
+            wb.close();
         }
     }
 

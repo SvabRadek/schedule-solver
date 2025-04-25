@@ -38,7 +38,7 @@ public class SolverShell {
     @ShellMethod("Solve")
     public String solve() throws IOException {
         var filename = "Rozvrh.xlsx";
-        var problem = converter.convert(Path.of(System.getProperty("user.dir") + "/" + filename));
+        var problem = converter.read(Path.of(System.getProperty("user.dir") + "/" + filename).toFile());
         var id = UUID.randomUUID();
         publisher.publishEvent(
                 new StartSolvingCommand(

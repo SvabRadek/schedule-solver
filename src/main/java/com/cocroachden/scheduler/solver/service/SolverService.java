@@ -3,7 +3,9 @@ package com.cocroachden.scheduler.solver.service;
 import ai.timefold.solver.core.api.solver.SolverManager;
 import ai.timefold.solver.core.api.solver.SolverStatus;
 import com.cocroachden.scheduler.domain.SolvingId;
+import com.cocroachden.scheduler.solver.AvailabilityType;
 import com.cocroachden.scheduler.solver.EmployeeSchedule;
+import com.cocroachden.scheduler.solver.EmployeeShiftAssignmentInfo;
 import com.cocroachden.scheduler.solver.command.startsolving.SolutionHasBeenFound;
 import com.cocroachden.scheduler.solver.command.startsolving.SolvingHasStarted;
 import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand;
@@ -30,6 +32,7 @@ public class SolverService {
     @EventListener
     @Async
     public void handle(StartSolvingCommand command) {
+//        this.preAssignRequiredShifts(command.problem());
         solverManager.solveAndListen(
                 command.id(),
                 command.problem(),
@@ -48,5 +51,22 @@ public class SolverService {
 
     public SolverStatus getSolverStatus(SolvingId solvingId) {
         return solverManager.getSolverStatus(solvingId);
+    }
+
+    private void preAssignRequiredShifts(final EmployeeSchedule problem) {
+        problem.getAvailabilities().stream()
+               .filter(a -> a.type().equals(AvailabilityType.REQUIRED))
+               .forEach(a -> {
+                   problem.getShiftAssignments().stream()
+                          .filter(sa -> sa.getEmployee() == null)
+                          .filter(sa -> sa.getDate().equals(a.date()))
+                          .filter(sa -> sa.getShiftType().equals(a.shiftType()))
+                          .findAny()
+                          .ifPresent(sa -> {
+                              sa.setEmployee(a.employee());
+                              a.employee().getShiftAssignments().add(sa);
+                              a.employee().setAssignmentInfo(new EmployeeShiftAssignmentInfo(a.employee().getShiftAssignments()));
+                          });
+               });
     }
 }

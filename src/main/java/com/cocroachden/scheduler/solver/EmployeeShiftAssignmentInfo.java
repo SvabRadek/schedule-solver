@@ -4,36 +4,37 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @AllArgsConstructor
 @Getter
 public class EmployeeShiftAssignmentInfo {
 
-    private final Integer nightShifts;
-    private final Integer dayShifts;
-    private final Integer weekendShifts;
+    private Integer nightShifts;
+    private Integer dayShifts;
+    private Integer weekendShifts;
 
-    public static EmployeeShiftAssignmentInfo calculate(List<ShiftAssignment> shiftAssignments) {
-        var dayShifts = new AtomicInteger(0);
-        var nightShifts = new AtomicInteger(0);
-        var weekendShifts = new AtomicInteger(0);
-        shiftAssignments.forEach(shiftAssignment -> {
+    public EmployeeShiftAssignmentInfo(List<ShiftAssignment> shiftAssignments) {
+        calculate(shiftAssignments);
+    }
+
+    public void calculate(List<ShiftAssignment> shiftAssignments) {
+        var dayShifts = 0;
+        var nightShifts = 0;
+        var weekendShifts = 0;
+        for (ShiftAssignment shiftAssignment : shiftAssignments) {
             if (shiftAssignment.getShiftType().equals(ShiftType.NIGHT)) {
-                nightShifts.incrementAndGet();
+                nightShifts++;
             }
             if (shiftAssignment.getShiftType().equals(ShiftType.DAY)) {
-                dayShifts.incrementAndGet();
+                dayShifts++;
             }
             if (shiftAssignment.getDate().getDayOfWeek().getValue() > 5) {
-                weekendShifts.incrementAndGet();
+                weekendShifts++;
             }
-        });
-        return new EmployeeShiftAssignmentInfo(
-                nightShifts.get(),
-                dayShifts.get(),
-                weekendShifts.get()
-        );
+        }
+        this.nightShifts = nightShifts;
+        this.dayShifts = dayShifts;
+        this.weekendShifts = weekendShifts;
     }
 
     public Integer getTotalCount() {

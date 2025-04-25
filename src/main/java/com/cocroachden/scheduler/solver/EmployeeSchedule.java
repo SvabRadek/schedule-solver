@@ -38,7 +38,7 @@ public class EmployeeSchedule {
 
     public void printResults() {
         System.out.println("Score: " + score.toString());
-        var headerFormat = new StringBuilder("%20s");
+        var headerFormat = new StringBuilder("%30s ");
         var headerElements = new ArrayList<>();
         headerElements.add("");
         var dates = shiftAssignments.stream()
@@ -54,7 +54,7 @@ public class EmployeeSchedule {
         System.out.format(headerFormat + "%n", headerElements.toArray());
 
         employees.forEach(employee -> {
-            var lineFormat = new StringBuilder("%-20s:");
+            var lineFormat = new StringBuilder("%-30s:");
             var lineElements = new ArrayList<>();
             lineElements.add(employee.getEmployeeId().id() + " - " + employee.getShiftAssignments().size());
             dates.forEach(date -> {
@@ -64,13 +64,17 @@ public class EmployeeSchedule {
                                                  .findAny()
                                                  .map(sa -> sa.getShiftType() == ShiftType.DAY ? "D" : "N")
                                                  .orElse("");
-                var availability = availabilities.stream()
-                                                 .filter(a -> a.employee().equals(employee) && a.date().equals(date))
-                                                 .findAny()
-                                                 .map(a -> "/" + a.type().getSymbol() + a.shiftType().name().charAt(0))
-                                                 .orElse("");
+                var availabilitySymbol = "";
+                var availabilityForDay = availabilities.stream()
+                                                       .filter(a -> a.employee().equals(employee) && a.date().equals(date))
+                                                       .toList();
+                if (availabilityForDay.size() == 2) {
+                    availabilitySymbol = "/V";
+                } else if (availabilityForDay.size() == 1) {
+                    availabilitySymbol = "/" + availabilityForDay.get(0).shiftType().name().charAt(0);
+                }
                 lineFormat.append("%7s" + "|");
-                lineElements.add(assignment + availability);
+                lineElements.add(assignment + availabilitySymbol);
             });
             System.out.format(lineFormat + "%n", lineElements.toArray());
         });

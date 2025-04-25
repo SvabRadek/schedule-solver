@@ -90,7 +90,7 @@ class ScheduleConstraintProviderTest {
         schedule.setStartDate(LocalDate.now());
         schedule.setEndDate(LocalDate.now().plusDays(5));
         schedule.setAvailabilities(List.of());
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(firstShift, secondShift, thirdDetachedShift)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift, secondShift, thirdDetachedShift)));
         constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeSingleShifts)
                           .givenSolution(schedule)
                           .penalizesBy(1);
@@ -103,7 +103,7 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(LocalDate.now())
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(assignment)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(assignment)));
         var availability = Availability.builder()
                                        .id(new AvailabilityId("irrelevant"))
                                        .shiftType(ShiftType.DAY)
@@ -185,7 +185,7 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(monday.plusDays(4))
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(firstShift, secondShift, thirdShift, fourthShift, fifthShift)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift, secondShift, thirdShift, fourthShift, fifthShift)));
         constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeTooManyShiftCountPerWeek)
                           .given(firstShift, secondShift, thirdShift, fourthShift, fifthShift, EXAMPLE_EMPLOYEE)
                           .penalizesBy(1);
@@ -198,7 +198,7 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(LocalDate.now())
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(firstShift)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift)));
         constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromIdealShiftCount)
                           .given(firstShift, EXAMPLE_EMPLOYEE)
                           .penalizesBy(81);
@@ -206,7 +206,7 @@ class ScheduleConstraintProviderTest {
 
     @Test
     public void itCanHandleDeviationFromIdealShiftCountWhenNoShiftsAreAssigned() {
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of()));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of()));
         constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromIdealShiftCount)
                           .given(EXAMPLE_EMPLOYEE)
                           .penalizesBy(100);
@@ -219,7 +219,7 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(LocalDate.now())
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(shift)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(shift)));
         var availability = Availability.builder()
                                        .employee(EXAMPLE_EMPLOYEE)
                                        .id(new AvailabilityId("example2"))
@@ -239,7 +239,7 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(LocalDate.now())
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(List.of(shift)));
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(shift)));
         var availability = Availability.builder()
                                        .employee(EXAMPLE_EMPLOYEE)
                                        .id(new AvailabilityId("example2"))

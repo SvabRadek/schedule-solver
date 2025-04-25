@@ -11,19 +11,19 @@ import java.util.List;
 import java.util.Objects;
 
 @Getter
-@PlanningEntity
+@PlanningEntity(difficultyWeightFactoryClass = EmployeeDifficultyWeightFactory.class)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public final class Employee {
     private EmployeeId employeeId;
     private Integer idealShiftCount;
     @InverseRelationShadowVariable(sourceVariableName = "employee")
     private final List<ShiftAssignment> shiftAssignments = new ArrayList<>();
+    @Setter
     @ShadowVariable(
             sourceVariableName = "shiftAssignments",
             variableListenerClass = EmployeeShiftAssignmentsListener.class
     )
-    @Setter
-    private Integer assignmentCount = 0;
+    private EmployeeShiftAssignmentInfo assignmentInfo = new EmployeeShiftAssignmentInfo(0, 0, 0);
 
     public Employee(final EmployeeId employeeId, final Integer idealShiftCount) {
         this.employeeId = employeeId;

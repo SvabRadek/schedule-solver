@@ -2,6 +2,7 @@ package com.cocroachden.scheduler.solver;
 
 import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.score.stream.*;
+import ai.timefold.solver.core.api.score.stream.common.SequenceChain;
 import org.springframework.lang.NonNull;
 
 import java.time.DayOfWeek;
@@ -10,46 +11,40 @@ import java.util.Locale;
 
 public class ScheduleConstraintProvider implements ConstraintProvider {
 
-    public static final int MAX_SHIFTS_PER_WEEK = 4;
+    public static final int MAX_SHIFTS_PER_WEEK = 5;
     public static final int MAX_CONSECUTIVE_SHIFTS = 3;
 
     @Override
     public @NonNull Constraint[] defineConstraints(@NonNull ConstraintFactory factory) {
         return new Constraint[]{
-                onlyOneShiftPerDay(factory),
-                allShiftsShouldBeAssigned(factory),
-                noShiftWhenUnavailable(factory),
-                penaltyWhenUndesirable(factory),
-                rewardWhenDesirable(factory),
-                noMoreThanXShiftInARow(factory),
-                avoidSingleShifts(factory),
-                noDayShiftsAfterNightShift(factory),
-                preferFullWorkWeekends(factory),
-                maxShiftCountPerWeek(factory),
-                shiftWhenRequired(factory),
-//                evenShiftDistribution(factory),
-                penalizeDeviationFromIdealShiftCount(factory)
+                requireOnlyOneShiftPerDay(factory),
+                requireNoShiftWhenUnavailable(factory),
+                requireNoDayShiftsAfterNightShift(factory),
+                requireShiftWhenRequired(factory),
+                penalizeTooManyConsecutiveShifts(factory),
+                penalizeTooManyShiftCountPerWeek(factory),
+                penalizeAssignedWhenUndesirable(factory),
+                penalizeSingleShifts(factory),
+                penalizeSingleDayOff(factory),
+                penalizeDeviationFromIdealShiftCount(factory),
+                penalizeUnequalWeekendDistribution(factory),
+                penalizeNightAndDayShiftDisbalance(factory),
+                rewardAssignedWhenDesirable(factory),
+                rewardFullWorkWeekends(factory),
         };
     }
 
-    Constraint onlyOneShiftPerDay(ConstraintFactory constraintFactory) {
+    Constraint requireOnlyOneShiftPerDay(ConstraintFactory constraintFactory) {
         return constraintFactory
                 .forEachUniquePair(
                         ShiftAssignment.class,
                         Joiners.equal(ShiftAssignment::getEmployee),
                         Joiners.equal(ShiftAssignment::getDate)
-                ).penalize(HardSoftScore.ONE_HARD)
+                ).penalize(HardSoftScore.ofHard(100))
                 .asConstraint("One shift per day");
     }
 
-    Constraint allShiftsShouldBeAssigned(ConstraintFactory constraintFactory) {
-        return constraintFactory.forEach(ShiftAssignment.class)
-                                .filter(shiftAssignment -> shiftAssignment.getEmployee() == null)
-                                .penalize(HardSoftScore.ONE_HARD)
-                                .asConstraint("All shifts should be assigned");
-    }
-
-    Constraint noShiftWhenUnavailable(ConstraintFactory constraintFactory) {
+    Constraint requireNoShiftWhenUnavailable(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
                                 .join(
                                         Availability.class,
@@ -61,7 +56,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                 .asConstraint("No shifts when unavailable");
     }
 
-    Constraint shiftWhenRequired(ConstraintFactory constraintFactory) {
+    Constraint requireShiftWhenRequired(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Availability.class)
                                 .filter(availability -> availability.type().equals(AvailabilityType.REQUIRED))
                                 .ifNotExists(
@@ -69,11 +64,12 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                         Joiners.equal(Availability::employee, ShiftAssignment::getEmployee),
                                         Joiners.equal(Availability::date, ShiftAssignment::getDate),
                                         Joiners.equal(Availability::shiftType, ShiftAssignment::getShiftType)
-                                ).penalize(HardSoftScore.ONE_HARD, value -> 100)
+                                ).groupBy(Availability::employee, ConstraintCollectors.count())
+                                .penalize(HardSoftScore.ONE_HARD, (employee, count) -> count)
                                 .asConstraint("Shift when required");
     }
 
-    Constraint penaltyWhenUndesirable(ConstraintFactory constraintFactory) {
+    Constraint penalizeAssignedWhenUndesirable(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
                                 .join(
                                         Availability.class,
@@ -85,7 +81,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                 .asConstraint("Penalize undesirable shifts");
     }
 
-    Constraint rewardWhenDesirable(ConstraintFactory constraintFactory) {
+    Constraint rewardAssignedWhenDesirable(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
                                 .join(
                                         Availability.class,
@@ -97,23 +93,43 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                 .asConstraint("Reward desirable shifts");
     }
 
-    Constraint noMoreThanXShiftInARow(ConstraintFactory constraintFactory) {
+    Constraint penalizeSingleShifts(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
-                                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
-                                .filter(shiftAssignment -> shiftAssignment.getConsecutiveShiftAssignmentCount() > MAX_CONSECUTIVE_SHIFTS)
-                                .penalize(HardSoftScore.ONE_HARD)
-                                .asConstraint("No more than " + MAX_CONSECUTIVE_SHIFTS + " shifts in a row");
+                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
+                .groupBy(
+                        ShiftAssignment::getEmployee,
+                        ConstraintCollectors.toConsecutiveSequences(assignment -> assignment.getDate().getDayOfYear())
+                ).flattenLast(SequenceChain::getConsecutiveSequences)
+                .filter((employee, shiftAssignmentIntegerSequence) -> shiftAssignmentIntegerSequence.getCount() == 1)
+                .penalize(HardSoftScore.ofSoft(5))
+                .asConstraint("Penalize single shifts");
     }
 
-    Constraint avoidSingleShifts(ConstraintFactory constraintFactory) {
+    Constraint penalizeTooManyConsecutiveShifts(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
-                                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
-                                .filter(shiftAssignment -> shiftAssignment.getConsecutiveShiftAssignmentCount() == 1)
-                                .penalize(HardSoftScore.ofSoft(5))
-                                .asConstraint("Avoid single shifts");
+                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
+                .groupBy(
+                        ShiftAssignment::getEmployee,
+                        ConstraintCollectors.toConsecutiveSequences(assignment -> assignment.getDate().getDayOfYear())
+                ).flattenLast(SequenceChain::getConsecutiveSequences)
+                .filter((employee, shiftAssignmentIntegerSequence) -> shiftAssignmentIntegerSequence.getCount() > MAX_CONSECUTIVE_SHIFTS)
+                .penalize(HardSoftScore.ONE_HARD, (employee, shiftAssignmentIntegerSequence) -> shiftAssignmentIntegerSequence.getCount())
+                .asConstraint("Penalize too many consecutive shifts");
     }
 
-    Constraint noDayShiftsAfterNightShift(ConstraintFactory constraintFactory) {
+    Constraint penalizeSingleDayOff(ConstraintFactory constraintFactory) {
+        return constraintFactory.forEach(ShiftAssignment.class)
+                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
+                .groupBy(
+                        ShiftAssignment::getEmployee,
+                        ConstraintCollectors.toConsecutiveSequences(assignment -> assignment.getDate().getDayOfYear())
+                ).flattenLast(SequenceChain::getBreaks)
+                .filter((employee, shiftAssignmentIntegerBreak) -> shiftAssignmentIntegerBreak.getLength() == 2)
+                .penalize(HardSoftScore.ONE_SOFT)
+                .asConstraint("Penalize too short off time");
+    }
+
+    Constraint requireNoDayShiftsAfterNightShift(ConstraintFactory constraintFactory) {
         return constraintFactory
                 .forEachUniquePair(
                         ShiftAssignment.class,
@@ -121,11 +137,11 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                         Joiners.lessThan(ShiftAssignment::getDate)
                 ).filter((first, second) -> first.getDate().plusDays(1).equals(second.getDate()))
                 .filter((first, second) -> first.getShiftType() == ShiftType.NIGHT && second.getShiftType() == ShiftType.DAY)
-                .penalize(HardSoftScore.ONE_HARD, (first, second) -> 50)
+                .penalize(HardSoftScore.ofHard(100))
                 .asConstraint("No day shifts after night shifts");
     }
 
-    Constraint preferFullWorkWeekends(ConstraintFactory constraintFactory) {
+    Constraint rewardFullWorkWeekends(ConstraintFactory constraintFactory) {
         return constraintFactory
                 .forEachUniquePair(
                         ShiftAssignment.class,
@@ -133,44 +149,52 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                         Joiners.filtering((a, b) -> a.getDate().plusDays(1).equals(b.getDate())
                                 && a.getDate().getDayOfWeek() == DayOfWeek.SATURDAY)
 
-                ).reward(HardSoftScore.ofSoft(5))
-                .asConstraint("Strongly prefer full work weekends");
+                ).reward(HardSoftScore.ofSoft(50))
+                .asConstraint("Prefer full work weekends");
     }
 
-    Constraint maxShiftCountPerWeek(ConstraintFactory constraintFactory) {
+    Constraint penalizeTooManyShiftCountPerWeek(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(ShiftAssignment.class)
                                 .groupBy(
                                         ShiftAssignment::getEmployee,
                                         shiftAssignment -> shiftAssignment.getDate().get(WeekFields.of(Locale.GERMANY).weekOfYear()),
                                         ConstraintCollectors.count()
                                 ).filter((employee, week, count) -> count > MAX_SHIFTS_PER_WEEK)
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .penalize(HardSoftScore.ONE_HARD, (employee, week, count) -> count)
                                 .asConstraint("Max shift count per week");
     }
-
-//    Constraint evenShiftDistribution(ConstraintFactory constraintFactory) {
-//        return constraintFactory.forEach(Employee.class)
-//                .join(ShiftAssignment.class, Joiners.equal(e -> e, ShiftAssignment::getEmployee))
-//                .groupBy((employee, shiftAssignment) -> employee, ConstraintCollectors.countBi())
-//
-//
-//        return constraintFactory.forEach(ShiftAssignment.class)
-//                                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
-//                                .groupBy(ShiftAssignment::getEmployee, ConstraintCollectors.count())
-//                                .groupBy((employee, count) -> count, ConstraintCollectors.average((employee, count) -> count))
-//                                .penalize(HardSoftScore.ONE_SOFT, (count, average) -> (int) Math.abs(count - average))
-//                                .asConstraint("Equal distribution");
-//    }
 
     Constraint penalizeDeviationFromIdealShiftCount(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
                                 .penalize(
                                         HardSoftScore.ONE_SOFT,
-                                        (employee) -> (int) Math.round(Math.pow(employee.getIdealShiftCount() - employee.getAssignmentCount(), 2))
+                                        (employee) -> (int) Math.round(Math.pow(
+                                                employee.getIdealShiftCount() - employee.getAssignmentInfo().getTotalCount(),
+                                                2
+                                        ))
                                 ).asConstraint("Penalize deviation from ideal shift count");
     }
 
-    //preferred colleague
+    Constraint penalizeNightAndDayShiftDisbalance(ConstraintFactory constraintFactory) {
+        return constraintFactory.forEach(Employee.class)
+                                .penalize(
+                                        HardSoftScore.ONE_SOFT,
+                                        employee -> (int) Math.round(Math.pow(employee.getAssignmentInfo().getDayShifts() - employee
+                                                .getAssignmentInfo()
+                                                .getNightShifts(), 2)
+                                        )
+                                ).asConstraint("Penalize unequal shift type distribution");
+    }
+
+    Constraint penalizeUnequalWeekendDistribution(ConstraintFactory constraintFactory) {
+        return constraintFactory.forEach(Employee.class)
+                                .groupBy(employee -> employee, ConstraintCollectors.average(e -> e.getAssignmentInfo().getWeekendShifts()))
+                                .penalize(
+                                        HardSoftScore.ONE_SOFT,
+                                        (employee, average) -> (int) Math.round(Math.pow(employee.getAssignmentInfo().getWeekendShifts() - average, 2))
+                                )
+                                .asConstraint("Penalize unequal weekend distribution");
+    }
 }
 
 

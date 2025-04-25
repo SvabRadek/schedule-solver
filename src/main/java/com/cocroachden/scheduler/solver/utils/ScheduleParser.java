@@ -14,6 +14,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 
 @Service
 public class ScheduleParser {
@@ -43,7 +44,7 @@ public class ScheduleParser {
     private void readSettings(final XSSFSheet settingsSheet, final EmployeeSchedule schedule) {
         var employeesPerDayShift = settingsSheet.getRow(0).getCell(1).getNumericCellValue();
         var employeesPerNightShift = settingsSheet.getRow(1).getCell(1).getNumericCellValue();
-        var assignments = new ArrayList<ShiftAssignment>();
+        var assignments = new LinkedHashSet<ShiftAssignment>();
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1)).forEach(date -> {
             for (int i = 0; i < employeesPerDayShift; i++) {
                 assignments.add(
@@ -79,7 +80,11 @@ public class ScheduleParser {
         var employees = new ArrayList<Employee>();
         var availabilities = new ArrayList<Availability>();
         for (int i = 4; i <= sheet.getLastRowNum(); i++) {
-            var name = sheet.getRow(i).getCell(0).getStringCellValue();
+            var employeeRow = sheet.getRow(i);
+            if (employeeRow == null) break;
+            var nameCell = employeeRow.getCell(0);
+            if (nameCell == null) break;
+            var name = nameCell.getStringCellValue();
             var idealShiftCount = sheet.getRow(i).getCell(1).getNumericCellValue();
             if (name.isBlank()) break;
             Employee employee = new Employee(new EmployeeId(name), (int) Math.round(idealShiftCount));

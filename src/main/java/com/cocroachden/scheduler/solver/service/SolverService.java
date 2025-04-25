@@ -9,18 +9,23 @@ import com.cocroachden.scheduler.solver.command.startsolving.SolvingHasStarted;
 import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand;
 import com.cocroachden.scheduler.solver.command.stopsolving.SolvingHasStopped;
 import com.cocroachden.scheduler.solver.command.stopsolving.StopSolvingCommand;
-import lombok.AllArgsConstructor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 @Service
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SolverService {
 
-    private SolverManager<EmployeeSchedule, SolvingId> solverManager;
-    private ApplicationEventPublisher publisher;
+    private final SolverManager<EmployeeSchedule, SolvingId> solverManager;
+    private final ApplicationEventPublisher publisher;
+    private final Set<SolvingId> runningProblems = Collections.synchronizedSet(new HashSet<>());
 
     @EventListener
     @Async
@@ -30,12 +35,14 @@ public class SolverService {
                 command.problem(),
                 result -> publisher.publishEvent(new SolutionHasBeenFound(result))
         );
+        runningProblems.add(command.id());
         publisher.publishEvent(new SolvingHasStarted(command.id()));
     }
 
     @EventListener
     public SolvingHasStopped handle(StopSolvingCommand command) {
         solverManager.terminateEarly(command.id());
+        runningProblems.remove(command.id());
         return new SolvingHasStopped(command.id());
     }
 

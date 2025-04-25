@@ -22,7 +22,7 @@ public class SolverScheduleFixture {
         final var endDate = LocalDate.now().plusDays(scheduleLength);
         final var employees = this.generateEmployees();
         final var availabilities = new ArrayList<Availability>();
-        final var shiftAssignments = new ArrayList<ShiftAssignment>();
+        final var shiftAssignments = new LinkedHashSet<ShiftAssignment>();
         startDate.datesUntil(endDate.plusDays(1))
                  .forEach(date -> employees.forEach(e -> generateAvailability(e, date).ifPresent(availabilities::add)));
         startDate.datesUntil(endDate.plusDays(1))

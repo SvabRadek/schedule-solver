@@ -12,7 +12,7 @@ public class EmployeeShiftAssignmentsListener implements VariableListener<Employ
 
     @Override
     public void afterVariableChanged(@NonNull final ScoreDirector<EmployeeSchedule> scoreDirector, @NonNull final Employee employee) {
-        employee.setAssignmentCount(employee.getShiftAssignments().size());
+        employee.setAssignmentInfo(EmployeeShiftAssignmentInfo.calculate(employee.getShiftAssignments()));
     }
 
     @Override

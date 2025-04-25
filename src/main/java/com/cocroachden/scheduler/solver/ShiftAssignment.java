@@ -26,12 +26,6 @@ public class ShiftAssignment {
     private LocalDate date;
     private ShiftType shiftType;
 
-    @ShadowVariable(
-            sourceVariableName = "employee",
-            variableListenerClass = ConsecutiveShiftAssignmentCountListener.class
-    )
-    private Integer consecutiveShiftAssignmentCount;
-
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
@@ -46,6 +40,6 @@ public class ShiftAssignment {
 
     @Override
     public String toString() {
-        return date.toString() + "-" + shiftType.name() + "->" + employee.toString();
+        return date.toString() + "-" + shiftType.name() + "->" + (employee == null ? "null" : employee.toString());
     }
 }

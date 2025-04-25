@@ -12,9 +12,7 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 @PlanningSolution
 @Setter
@@ -33,7 +31,7 @@ public class EmployeeSchedule {
     private List<Availability> availabilities;
 
     @PlanningEntityCollectionProperty
-    private List<ShiftAssignment> shiftAssignments = new ArrayList<>();
+    private Set<ShiftAssignment> shiftAssignments = new LinkedHashSet<>();
 
     @PlanningScore
     private HardSoftScore score;
@@ -44,10 +42,10 @@ public class EmployeeSchedule {
         var headerElements = new ArrayList<>();
         headerElements.add("");
         var dates = shiftAssignments.stream()
-                          .map(ShiftAssignment::getDate)
-                          .distinct()
-                          .sorted()
-                          .toList();
+                                    .map(ShiftAssignment::getDate)
+                                    .distinct()
+                                    .sorted()
+                                    .toList();
         dates.forEach(date -> {
             headerFormat.append("%7s" + "|");
             headerElements.add(date.format(DateTimeFormatter.ofPattern("dd/MM")) + " " + date.getDayOfWeek().getValue());
@@ -61,6 +59,7 @@ public class EmployeeSchedule {
             lineElements.add(employee.getEmployeeId().id() + " - " + employee.getShiftAssignments().size());
             dates.forEach(date -> {
                 var assignment = shiftAssignments.stream()
+                                                 .filter(sa -> sa.getEmployee() != null)
                                                  .filter(sa -> sa.getEmployee().equals(employee) && sa.getDate().equals(date))
                                                  .findAny()
                                                  .map(sa -> sa.getShiftType() == ShiftType.DAY ? "D" : "N")

@@ -1,5 +1,6 @@
 package com.cocroachden.scheduler.solver.shell;
 
+import ai.timefold.solver.benchmark.api.PlannerBenchmarkFactory;
 import com.cocroachden.scheduler.domain.SolvingId;
 import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand;
 import com.cocroachden.scheduler.solver.fixtures.SolverScheduleFixture;
@@ -52,5 +53,14 @@ public class SolverShell {
     @ShellMethod("Status")
     public String status(String id) {
         return solverQuery.getSolverStatus(new SolvingId(id)).toString();
+    }
+
+    @ShellMethod("Benchmark")
+    public void benchmark() {
+        var benchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource("plannerBenchmarkConfig.xml");
+        var resource = ClassLoader.getSystemResource("example_problem.xlsx");
+        var problem = converter.read(Path.of(resource.getPath()).toFile());
+        var benchmark = benchmarkFactory.buildPlannerBenchmark(problem);
+        benchmark.benchmarkAndShowReportInBrowser();
     }
 }

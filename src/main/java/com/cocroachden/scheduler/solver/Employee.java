@@ -4,14 +4,17 @@ import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 import ai.timefold.solver.core.api.domain.variable.InverseRelationShadowVariable;
 import ai.timefold.solver.core.api.domain.variable.ShadowVariable;
 import com.cocroachden.scheduler.domain.EmployeeId;
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Getter
-@PlanningEntity(difficultyWeightFactoryClass = EmployeeDifficultyWeightFactory.class)
+@PlanningEntity
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public final class Employee {
     private EmployeeId employeeId;

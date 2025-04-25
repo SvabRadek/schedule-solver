@@ -3,9 +3,7 @@ package com.cocroachden.scheduler.solver;
 import ai.timefold.solver.core.api.domain.entity.PlanningEntity;
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
 import ai.timefold.solver.core.api.domain.variable.PlanningVariable;
-import ai.timefold.solver.core.api.domain.variable.ShadowVariable;
 import com.cocroachden.scheduler.domain.ShiftAssignmentId;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -29,7 +27,7 @@ public class ShiftAssignment {
     @Override
     public boolean equals(final Object o) {
         if (this == o) return true;
-        if (!( o instanceof final ShiftAssignment that)) return false;
+        if (!( o instanceof final ShiftAssignment that )) return false;
         return Objects.equals(id, that.id);
     }
 
@@ -40,6 +38,6 @@ public class ShiftAssignment {
 
     @Override
     public String toString() {
-        return date.toString() + "-" + shiftType.name() + "->" + (employee == null ? "null" : employee.toString());
+        return id.id() + "->" + ( employee == null ? "null" : employee.toString() );
     }
 }

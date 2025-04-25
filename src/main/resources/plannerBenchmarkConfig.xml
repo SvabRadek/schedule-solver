@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plannerBenchmark xmlns="https://timefold.ai/xsd/benchmark" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="https://timefold.ai/xsd/benchmark https://timefold.ai/xsd/benchmark/benchmark.xsd">
+  <benchmarkDirectory>local/</benchmarkDirectory>
+
+  <warmUpSecondsSpentLimit>10</warmUpSecondsSpentLimit>
+
+  <inheritedSolverBenchmark>
+    <solver>
+      <solutionClass>com.cocroachden.scheduler.solver.EmployeeSchedule</solutionClass>
+      <entityClass>com.cocroachden.scheduler.solver.Employee</entityClass>
+      <entityClass>com.cocroachden.scheduler.solver.ShiftAssignment</entityClass>
+      <scoreDirectorFactory>
+        <constraintProviderClass>com.cocroachden.scheduler.solver.ScheduleConstraintProvider</constraintProviderClass>
+      </scoreDirectorFactory>
+      <termination>
+        <minutesSpentLimit>2</minutesSpentLimit>
+      </termination>
+    </solver>
+    <problemBenchmarks>
+<!--      <solutionFileIOClass>com.cocroachden.scheduler.solver.utils.ScheduleParser</solutionFileIOClass>-->
+<!--      <inputSolutionFile>example_problem.xlsx</inputSolutionFile>-->
+    </problemBenchmarks>
+  </inheritedSolverBenchmark>
+  <solverBenchmarkBluePrint>
+
+    <solverBenchmarkBluePrintType>EVERY_CONSTRUCTION_HEURISTIC_TYPE_WITH_EVERY_LOCAL_SEARCH_TYPE</solverBenchmarkBluePrintType>
+  </solverBenchmarkBluePrint>
+</plannerBenchmark>

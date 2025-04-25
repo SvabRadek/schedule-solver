@@ -4,4 +4,5 @@
     <termination>
         <secondsSpentLimit>300</secondsSpentLimit>
     </termination>
+
 </solver>

@@ -12,6 +12,7 @@ import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand
 import com.cocroachden.scheduler.solver.command.stopsolving.SolvingHasStopped;
 import com.cocroachden.scheduler.solver.command.stopsolving.StopSolvingCommand;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
@@ -23,6 +24,7 @@ import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class SolverService {
 
     private final SolverManager<EmployeeSchedule, SolvingId> solverManager;
@@ -32,7 +34,8 @@ public class SolverService {
     @EventListener
     @Async
     public void handle(StartSolvingCommand command) {
-//        this.preAssignRequiredShifts(command.problem());
+        this.preAssignRequiredShifts(command.problem());
+        log.info("Solver starting. SolvingId: {}", command.id().id());
         solverManager.solveAndListen(
                 command.id(),
                 command.problem(),
@@ -45,6 +48,7 @@ public class SolverService {
     @EventListener
     public SolvingHasStopped handle(StopSolvingCommand command) {
         solverManager.terminateEarly(command.id());
+        log.info("Solver stopped for solution {}.", command.id().id());
         runningProblems.remove(command.id());
         return new SolvingHasStopped(command.id());
     }

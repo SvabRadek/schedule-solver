@@ -262,7 +262,7 @@ class ScheduleConstraintProviderTest {
 //                .setEmployee(EXAMPLE_EMPLOYEE);
 //        var availability = Availability.builder()
 //                                       .employee(EXAMPLE_EMPLOYEE)
-//                                       .id(new AvailabilityId("example2"))
+//                                       .solvingId(new AvailabilityId("example2"))
 //                                       .shiftType(ShiftType.DAY)
 //                                       .type(AvailabilityType.DESIRED)
 //                                       .date(LocalDate.now())

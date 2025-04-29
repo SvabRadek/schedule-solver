@@ -8,7 +8,7 @@ import lombok.Getter;
 public enum AvailabilityType {
     DESIRED("+"),
     UNDESIRED("-"),
-    UNAVAILABLE("#"),
+    UNAVAILABLE("!"),
     REQUIRED("");
 
     private final String symbol;

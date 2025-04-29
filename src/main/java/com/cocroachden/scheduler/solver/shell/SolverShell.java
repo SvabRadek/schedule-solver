@@ -11,6 +11,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
@@ -37,9 +38,14 @@ public class SolverShell {
     }
 
     @ShellMethod("Solve")
-    public String solve() throws IOException {
+    public String solve() {
         var filename = "Rozvrh.xlsx";
-        var problem = converter.read(Path.of(System.getProperty("user.dir") + "/" + filename).toFile());
+        var folder = System.getProperty("user.dir");
+        var file = new File(Path.of(folder + "/" + filename).toUri());
+        if (!file.exists() || file.isDirectory()) {
+            return "Ocekavany soubor %s s definici problemu nenalezen ve slozce %s.".formatted(filename, folder);
+        }
+        var problem = converter.read(file);
         var id = UUID.randomUUID();
         publisher.publishEvent(
                 new StartSolvingCommand(

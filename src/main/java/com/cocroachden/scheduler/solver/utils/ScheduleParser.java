@@ -14,11 +14,14 @@ import org.springframework.stereotype.Service;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
@@ -26,6 +29,17 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
 
     public static final String FILE_EXTENSION = "xlsx";
     public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("d.M.yyyy");
+    public static final Map<DayOfWeek, String> WEEK_DAY_TRANSLATIONS = new HashMap<>();
+
+    static {
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.MONDAY, "Po");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.TUESDAY, "Ut");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.WEDNESDAY, "St");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.THURSDAY, "Ct");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.FRIDAY, "Pa");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.SATURDAY, "So");
+        WEEK_DAY_TRANSLATIONS.put(DayOfWeek.SUNDAY, "Ne");
+    }
 
     @Override
     public String getInputFileExtension() {
@@ -61,6 +75,57 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
     @SneakyThrows
     public void write(EmployeeSchedule schedule, File output) {
         var wb = new XSSFWorkbook();
+        this.createScheduleSheet(schedule, wb);
+        this.createDetailedScheduleSheet(schedule, wb);
+        try (var outStream = new FileOutputStream(output)) {
+            wb.write(outStream);
+            wb.close();
+        }
+    }
+
+    private void createDetailedScheduleSheet(final EmployeeSchedule schedule, final XSSFWorkbook wb) {
+        var sheet = wb.createSheet("Detailni rozvrh");
+        var header = sheet.createRow(0);
+        var col = new AtomicInteger(1);
+        schedule.getStartDate()
+                .datesUntil(schedule.getEndDate().plusDays(1))
+                .forEach(localDate -> {
+                    var cell = header.createCell(col.getAndIncrement());
+                    cell.setCellValue(localDate.getDayOfMonth() + " " + WEEK_DAY_TRANSLATIONS.get(localDate.getDayOfWeek()));
+                    if (localDate.getDayOfWeek().getValue() > 5) {
+                        cell.getCellStyle().getFont().setBold(true);
+                    }
+                });
+        var row = new AtomicInteger(1);
+        schedule.getEmployees().forEach(employee -> {
+            var employeeRow = sheet.createRow(row.getAndIncrement());
+            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id());
+            schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
+                    .forEach(date -> {
+                        var availabilities = schedule.getAvailabilities().stream()
+                                                     .filter(a -> a.employee().equals(employee) && a.date().equals(date))
+                                                     .toList();
+                        var availabilitySymbol = "";
+                        if (availabilities.size() == 2) {
+                            availabilitySymbol = "V -> ";
+                        } else if (availabilities.size() == 1) {
+                            availabilitySymbol = availabilities.get(0).type().getSymbol() + availabilities.get(0).shiftType().getSymbol() + " -> ";
+                        }
+                        var assignment = schedule.getShiftAssignments().stream()
+                                                 .filter(a -> a.getEmployee().equals(employee))
+                                                 .filter(a -> a.getDate().equals(date))
+                                                 .findAny()
+                                                 .map(a -> a.getShiftType().getSymbol())
+                                                 .orElse("");
+                        var daysSinceScheduleStart = (int) ChronoUnit.DAYS.between(schedule.getStartDate(), date);
+                        employeeRow.createCell(daysSinceScheduleStart + 1)
+                                   .setCellValue(availabilitySymbol + assignment);
+                    });
+        });
+
+    }
+
+    private void createScheduleSheet(final EmployeeSchedule schedule, final XSSFWorkbook wb) {
         var headerWorkdayStyle = wb.createCellStyle();
         var headerWeekendStyle = wb.createCellStyle();
         var assignmentStyle = wb.createCellStyle();
@@ -76,7 +141,7 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
                 .datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(localDate -> {
                     var cell = header.createCell(col.getAndIncrement());
-                    cell.setCellValue(localDate.getDayOfMonth());
+                    cell.setCellValue(localDate.getDayOfMonth() + " " + WEEK_DAY_TRANSLATIONS.get(localDate.getDayOfWeek()));
                     if (localDate.getDayOfWeek().getValue() > 5) {
                         cell.setCellStyle(headerWeekendStyle);
                     } else {
@@ -96,10 +161,6 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
                         cell.setCellStyle(assignmentStyle);
                     });
         });
-        try (var outStream = new FileOutputStream(output)) {
-            wb.write(outStream);
-            wb.close();
-        }
     }
 
     private void readSettings(final XSSFSheet settingsSheet, final EmployeeSchedule schedule) {

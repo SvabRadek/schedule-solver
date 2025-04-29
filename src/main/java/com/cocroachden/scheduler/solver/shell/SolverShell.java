@@ -12,7 +12,6 @@ import org.springframework.shell.standard.ShellComponent;
 import org.springframework.shell.standard.ShellMethod;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.UUID;
 
@@ -25,25 +24,13 @@ public class SolverShell {
     private final SolverQuery solverQuery;
     private final ScheduleParser converter;
 
-    @ShellMethod("Start")
-    public String start() {
-        var id = UUID.randomUUID();
-        publisher.publishEvent(
-                new StartSolvingCommand(
-                        new SolvingId(id.toString()),
-                        fixture.generateEmployeeSchedule()
-                )
-        );
-        return id.toString();
-    }
-
-    @ShellMethod("Solve")
+    @ShellMethod("solve")
     public String solve() {
         var filename = "Rozvrh.xlsx";
         var folder = System.getProperty("user.dir");
         var file = new File(Path.of(folder + "/" + filename).toUri());
         if (!file.exists() || file.isDirectory()) {
-            return "Ocekavany soubor %s s definici problemu nenalezen ve slozce %s.".formatted(filename, folder);
+            return "Expected file %s with problem definition not found in expected folder %s.".formatted(filename, folder);
         }
         var problem = converter.read(file);
         var id = UUID.randomUUID();
@@ -56,12 +43,24 @@ public class SolverShell {
         return id.toString();
     }
 
-    @ShellMethod("Status")
+    @ShellMethod("fixture")
+    public String fixture() {
+        var id = UUID.randomUUID();
+        publisher.publishEvent(
+                new StartSolvingCommand(
+                        new SolvingId(id.toString()),
+                        fixture.generateEmployeeSchedule()
+                )
+        );
+        return id.toString();
+    }
+
+    @ShellMethod("status")
     public String status(String id) {
         return solverQuery.getSolverStatus(new SolvingId(id)).toString();
     }
 
-    @ShellMethod("Benchmark")
+    @ShellMethod("benchmark")
     public void benchmark() {
         var benchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource("plannerBenchmarkConfig.xml");
         var resource = ClassLoader.getSystemResource("example_problem.xlsx");

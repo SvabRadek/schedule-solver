@@ -1,14 +1,10 @@
 package com.cocroachden.scheduler.solver.utils;
 
 import ai.timefold.solver.persistence.common.api.domain.solution.SolutionFileIO;
-import com.cocroachden.scheduler.domain.AvailabilityId;
 import com.cocroachden.scheduler.domain.EmployeeId;
 import com.cocroachden.scheduler.domain.ShiftAssignmentId;
 import com.cocroachden.scheduler.solver.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
 import lombok.SneakyThrows;
-import lombok.ToString;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -220,49 +216,56 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
                 var symbol = cell.getStringCellValue();
                 if (symbol.isBlank()) continue;
                 var date = startDate.plusDays(j - 2);
-                if (symbol.equalsIgnoreCase("V")) {
-                    var day = Availability.builder()
-                                          .id(new AvailabilityId(date.toString() + ShiftType.DAY.name().charAt(0)))
-                                          .shiftType(ShiftType.DAY)
-                                          .type(AvailabilityType.UNAVAILABLE)
-                                          .date(date)
-                                          .employee(employee)
-                                          .build();
-                    var night = Availability.builder()
-                                            .id(new AvailabilityId(date.toString() + ShiftType.NIGHT.name().charAt(0)))
-                                            .shiftType(ShiftType.NIGHT)
-                                            .type(AvailabilityType.UNAVAILABLE)
-                                            .date(date)
-                                            .employee(employee)
-                                            .build();
+                if (symbol.contains("V")) {
+                    var day = Availability.of(
+                            employee,
+                            date,
+                            ShiftType.DAY,
+                            AvailabilityType.UNAVAILABLE
+                    );
+                    var night = Availability.of(
+                            employee,
+                            date,
+                            ShiftType.NIGHT,
+                            AvailabilityType.UNAVAILABLE
+                    );
                     availabilities.add(day);
                     availabilities.add(night);
-                    continue;
-                }
-                var availability = Availability.builder();
-                if (symbol.contains("!")) {
-                    availability.type(AvailabilityType.UNAVAILABLE);
-                } else if (symbol.contains("-")) {
-                    availability.type(AvailabilityType.UNDESIRED);
-                } else if (symbol.contains("+")) {
-                    availability.type(AvailabilityType.DESIRED);
-                } else {
-                    availability.type(AvailabilityType.REQUIRED);
-                }
-                if (symbol.contains("D")) {
-                    availability.shiftType(ShiftType.DAY);
-                    availability.id(new AvailabilityId(date.toString() + ShiftType.DAY.name().charAt(0)));
+                } else if (symbol.contains("D")) {
+                    availabilities.add(
+                            Availability.of(
+                                    employee,
+                                    date,
+                                    ShiftType.DAY,
+                                    this.parseAvailabilityFromSymbol(symbol)
+                            )
+                    );
                 } else if (symbol.contains("N")) {
-                    availability.shiftType(ShiftType.NIGHT);
-                    availability.id(new AvailabilityId(date.toString() + ShiftType.NIGHT.name().charAt(0)));
+                    availabilities.add(
+                            Availability.of(
+                                    employee,
+                                    date,
+                                    ShiftType.NIGHT,
+                                    this.parseAvailabilityFromSymbol(symbol)
+                            )
+                    );
                 }
-                availability.date(date);
-                availability.employee(employee);
-                availabilities.add(availability.build());
             }
             employees.add(employee);
         }
         schedule.setEmployees(employees);
         schedule.setAvailabilities(availabilities);
+    }
+
+    private AvailabilityType parseAvailabilityFromSymbol(String symbol) {
+        if (symbol.contains("!")) {
+            return AvailabilityType.UNAVAILABLE;
+        } else if (symbol.contains("-")) {
+            return AvailabilityType.UNDESIRED;
+        } else if (symbol.contains("+")) {
+            return AvailabilityType.DESIRED;
+        } else {
+            return AvailabilityType.REQUIRED;
+        }
     }
 }

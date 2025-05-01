@@ -16,4 +16,19 @@ public record Availability(
         ShiftType shiftType,
         AvailabilityType type
 ) {
+    public static Availability of(
+            Employee employee,
+            LocalDate date,
+            ShiftType shiftType,
+            AvailabilityType type
+    ) {
+        return new Availability(
+                new AvailabilityId(employee.getEmployeeId().id() + date.toString() + shiftType.getSymbol()),
+                employee,
+                date,
+                shiftType,
+                type
+        );
+    }
+
 }

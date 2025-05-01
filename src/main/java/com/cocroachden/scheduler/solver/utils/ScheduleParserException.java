@@ -12,4 +12,12 @@ public class ScheduleParserException extends RuntimeException {
     public static ScheduleParserException becauseCouldNotFindSheet(String sheetName) {
         return new ScheduleParserException("Could not find sheet " + sheetName);
     }
+
+    public static ScheduleParserException becauseCellNotFound(String cellName, String address) {
+        return new ScheduleParserException("Could not find %s cell value at %s".formatted(cellName, address));
+    }
+
+    public static ScheduleParserException becauseUnknownShiftSymbol(String symbol, String address) {
+        return new ScheduleParserException("Unknown shift symbol (%s) at cell %s".formatted(symbol, address));
+    }
 }

@@ -10,9 +10,10 @@
     </parent>
     <groupId>com.cocroachden</groupId>
     <artifactId>scheduler</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1</version>
     <name>scheduler</name>
     <description>scheduler</description>
+    <packaging>jar</packaging>
     <url/>
     <licenses>
         <license/>
@@ -136,6 +137,29 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>com.akathist.maven.plugins.launch4j</groupId>
+                <artifactId>launch4j-maven-plugin</artifactId>
+                <version>2.5.3</version>
+                <executions>
+                    <execution>
+                        <id>l4j-clui</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>launch4j</goal>
+                        </goals>
+                        <configuration>
+                            <headerType>gui</headerType>
+                            <outfile>${project.build.directory}/${project.build.finalName}.exe</outfile>
+                            <jar>${project.build.directory}/${project.build.finalName}.jar</jar>
+                            <errTitle>App Error</errTitle>
+                            <classPath>
+                                <mainClass>com.cocroachden.scheduler.SchedulerApplication</mainClass>
+                            </classPath>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

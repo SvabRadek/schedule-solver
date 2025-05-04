@@ -98,7 +98,7 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
         var row = new AtomicInteger(1);
         schedule.getEmployees().forEach(employee -> {
             var employeeRow = sheet.createRow(row.getAndIncrement());
-            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id());
+            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id() + " (%s)".formatted(employee.getShiftAssignments().size()));
             schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                     .forEach(date -> {
                         var availabilities = schedule.getAvailabilities().stream()
@@ -150,7 +150,7 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
         var row = new AtomicInteger(1);
         schedule.getEmployees().forEach(employee -> {
             var employeeRow = sheet.createRow(row.getAndIncrement());
-            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id());
+            employeeRow.createCell(0).setCellValue(employee.getEmployeeId().id() + " (%s)".formatted(employee.getShiftAssignments().size()));
             schedule.getShiftAssignments().stream()
                     .filter(shiftAssignment -> shiftAssignment.getEmployee().equals(employee))
                     .forEach(shiftAssignment -> {

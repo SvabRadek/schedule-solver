@@ -150,7 +150,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                 && a.getDate().getDayOfWeek() == DayOfWeek.SATURDAY)
 
                 ).reward(HardSoftScore.ofSoft(50))
-                .asConstraint("Prefer full work weekends");
+                .asConstraint("Reward full work weekends");
     }
 
     Constraint penalizeTooManyShiftCountPerWeek(ConstraintFactory constraintFactory) {

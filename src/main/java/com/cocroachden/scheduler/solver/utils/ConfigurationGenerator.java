@@ -24,18 +24,38 @@ public class ConfigurationGenerator {
 
     private final Vocabulary vocabulary;
 
+    public String getInputFileName() {
+        return vocabulary.translate("Schedule") + ".xlsx";
+    }
+
     public void generate(LocalDate startDate, LocalDate endDate) {
         var currentDir = System.getProperty("user.dir");
         try (var wb = new XSSFWorkbook()) {
             var scheduleSheet = wb.createSheet(vocabulary.translate("Schedule"));
-            var configurationSheet = wb.createSheet(vocabulary.translate("Configuration"));
             this.createScheduleSheet(scheduleSheet, startDate, endDate);
+            var configurationSheet = wb.createSheet(vocabulary.translate("Configuration"));
+            this.createConfigurationSheet(configurationSheet);
             var file = new File(currentDir + "/" + vocabulary.translate("Schedule") + ".xlsx");
             var outputStream = new FileOutputStream(file);
             wb.write(outputStream);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void createConfigurationSheet(XSSFSheet sheet) {
+        var firstRow = sheet.createRow(0);
+        var secondRow = sheet.createRow(1);
+        var thirdRow = sheet.createRow(2);
+        var fourthRow = sheet.createRow(3);
+        firstRow.createCell(0).setCellValue(vocabulary.translate("Required employee count on day shift"));
+        firstRow.createCell(1).setCellValue(4);
+        secondRow.createCell(0).setCellValue(vocabulary.translate("Required employee count on night shift"));
+        secondRow.createCell(1).setCellValue(3);
+        thirdRow.createCell(0).setCellValue(vocabulary.translate("Max shift count in a row"));
+        thirdRow.createCell(1).setCellValue(3);
+        fourthRow.createCell(0).setCellValue(vocabulary.translate("Max shift count in a week"));
+        fourthRow.createCell(1).setCellValue(5);
     }
 
     private void createScheduleSheet(XSSFSheet sheet, LocalDate startDate, LocalDate endDate) {
@@ -54,7 +74,7 @@ public class ConfigurationGenerator {
         startDate.datesUntil(endDate.plusDays(1)).forEach(date -> {
             var index = (int) ChronoUnit.DAYS.between(startDate, date);
             var headerDayCell = headerRow.createCell(index + 2);
-            headerDayCell.setCellValue(index);
+            headerDayCell.setCellValue(date.getDayOfMonth() + " " + date.getDayOfWeek().name().substring(0, 2));
             if (date.getDayOfWeek().getValue() > 5) {
                 headerDayCell.getCellStyle().setFillBackgroundColor(IndexedColors.BRIGHT_GREEN.index);
             }

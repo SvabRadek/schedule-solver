@@ -11,7 +11,7 @@ public final class CzechVocabulary implements Vocabulary {
     private final static Map<String, String> VOCABULARY = new HashMap<>();
 
     static {
-        VOCABULARY.put("Schedule", "Rozvrh1");
+        VOCABULARY.put("Schedule", "Rozvrh");
         VOCABULARY.put("Configuration", "Nastaveni");
         VOCABULARY.put("Start", "Start");
         VOCABULARY.put("End", "Konec");
@@ -28,6 +28,10 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("O", "V");
         VOCABULARY.put("Employee1", "Zamestnanec1");
         VOCABULARY.put("Employee2", "Zamestnanec2");
+        VOCABULARY.put("Required employee count on day shift", "Pocet lidi na denni");
+        VOCABULARY.put("Required employee count on night shift", "Pocet lidi na nocni");
+        VOCABULARY.put("Max shift count in a row", "Maximum smen v rade");
+        VOCABULARY.put("Max shift count in a week", "Maximum smen v tydnu");
         VOCABULARY.put(
                 "Schedule Instructions",
                 """

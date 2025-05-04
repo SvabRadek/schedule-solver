@@ -16,6 +16,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Scanner;
 import java.util.UUID;
 
 @ShellComponent
@@ -60,11 +61,37 @@ public class SolverShell {
     }
 
     @ShellMethod("generate")
-    public void generate(String startDate, String endDate) {
-        var formatter = DateTimeFormatter.ofPattern("d.M.yyyy");
+    public void generate() {
+        var scanner = new Scanner(System.in);
+        final var pathname = System.getProperty("user.dir") + "/" + configurationGenerator.getInputFileName();
+        var file = new File(pathname);
+        if (file.exists() && file.isFile()) {
+            if (!this.shouldOverwriteFile(pathname, scanner)) return;
+        }
+        System.out.println("Please enter start date in format D.M.YY");
+        var startDate = scanner.next();
+        System.out.println("Please enter end date in format D.M.YY");
+        var endDate = scanner.next();
+        var formatter = DateTimeFormatter.ofPattern("d.M.yy");
         var parsedStartDate = LocalDate.parse(startDate, formatter);
         var parsedEndDate = LocalDate.parse(endDate, formatter);
         configurationGenerator.generate(parsedStartDate, parsedEndDate);
+        System.out.println("Done!");
+    }
+
+    private boolean shouldOverwriteFile(final String pathname, final Scanner scanner) {
+        System.out.println("File " + pathname + " already exists. Do you want to overwrite it? Yes/No");
+        var overwrite = scanner.next();
+        if (overwrite.equalsIgnoreCase("yes")) {
+            return true;
+        } else if (overwrite.equalsIgnoreCase("no")) {
+            System.out.println("Terminating generation.");
+            return false;
+        } else {
+            System.out.println("Please enter yes or no");
+            this.shouldOverwriteFile(pathname, scanner);
+        }
+        return false;
     }
 
     @ShellMethod("status")

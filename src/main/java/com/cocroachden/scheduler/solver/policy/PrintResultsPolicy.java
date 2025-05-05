@@ -4,7 +4,7 @@ import ai.timefold.solver.core.api.score.buildin.hardsoft.HardSoftScore;
 import ai.timefold.solver.core.api.solver.SolutionManager;
 import com.cocroachden.scheduler.solver.EmployeeSchedule;
 import com.cocroachden.scheduler.solver.command.startsolving.SolutionHasBeenFound;
-import com.cocroachden.scheduler.solver.utils.ScheduleParser;
+import com.cocroachden.scheduler.solver.utils.ScheduleWriter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 public class PrintResultsPolicy {
 
     private final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-    private final ScheduleParser parser;
+    private final ScheduleWriter scheduleWriter;
     private final SolutionManager<EmployeeSchedule, HardSoftScore> solutionManager;
     private ScheduledFuture<?> scheduledTask;
 
@@ -37,7 +37,7 @@ public class PrintResultsPolicy {
         scheduledTask = executor.schedule(() -> {
             var path = Path.of(System.getProperty("user.dir") + "/Vysledek.xlsx");
             log.info("Writing latest solution to file '{}'", path);
-            parser.write(event.schedule(), path.toFile());
+            scheduleWriter.write(event.schedule(), path.toFile());
         }, 5, TimeUnit.SECONDS);
 
     }

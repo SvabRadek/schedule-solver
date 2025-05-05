@@ -55,6 +55,17 @@ public final class CzechVocabulary implements Vocabulary {
                         '-D' = 'Radeji bez nocni smeny'.
                         """
         );
+        VOCABULARY.put("Monday", "Pondeli");
+        VOCABULARY.put("Tuesday", "Utery");
+        VOCABULARY.put("Wednesday", "Streda");
+        VOCABULARY.put("Thursday", "Ctvrtek");
+        VOCABULARY.put("Friday", "Patek");
+        VOCABULARY.put("Saturday", "Sobota");
+        VOCABULARY.put("Sunday", "Nedele");
+        VOCABULARY.put("Count of D", "Pocet D");
+        VOCABULARY.put("Count of N", "Pocet N");
+        VOCABULARY.put("Count of V", "Pocet V");
+        VOCABULARY.put("Total", "Celkem");
     }
 
     @Override

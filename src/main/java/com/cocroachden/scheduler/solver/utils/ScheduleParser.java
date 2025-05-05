@@ -124,6 +124,8 @@ public class ScheduleParser implements SolutionFileIO<EmployeeSchedule> {
 
     }
 
+    //TODO refactor different parts of results into different methods
+    //TODO add assigned shift statistics to the result
     private void createScheduleSheet(final EmployeeSchedule schedule, final XSSFWorkbook wb) {
         var headerWorkdayStyle = wb.createCellStyle();
         var headerWeekendStyle = wb.createCellStyle();

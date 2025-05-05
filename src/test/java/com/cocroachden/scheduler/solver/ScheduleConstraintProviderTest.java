@@ -68,35 +68,6 @@ class ScheduleConstraintProviderTest {
     }
 
     @Test
-    public void itCanHandleAvoidingSingleShifts() {
-        var firstShift = new ShiftAssignment()
-                .setId(new ShiftAssignmentId("example1"))
-                .setShiftType(ShiftType.DAY)
-                .setDate(LocalDate.now())
-                .setEmployee(EXAMPLE_EMPLOYEE);
-        var secondShift = new ShiftAssignment()
-                .setId(new ShiftAssignmentId("example2"))
-                .setShiftType(ShiftType.DAY)
-                .setDate(LocalDate.now().plusDays(1))
-                .setEmployee(EXAMPLE_EMPLOYEE);
-        var thirdDetachedShift = new ShiftAssignment()
-                .setId(new ShiftAssignmentId("example3"))
-                .setShiftType(ShiftType.DAY)
-                .setDate(LocalDate.now().plusDays(3))
-                .setEmployee(EXAMPLE_EMPLOYEE);
-        var schedule = new EmployeeSchedule();
-        schedule.setShiftAssignments(new LinkedHashSet<>(List.of(firstShift, secondShift, thirdDetachedShift)));
-        schedule.setEmployees(List.of(EXAMPLE_EMPLOYEE));
-        schedule.setStartDate(LocalDate.now());
-        schedule.setEndDate(LocalDate.now().plusDays(5));
-        schedule.setAvailabilities(List.of());
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift, secondShift, thirdDetachedShift)));
-        constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeSingleShifts)
-                          .givenSolution(schedule)
-                          .penalizesBy(1);
-    }
-
-    @Test
     public void itCanHandleNoShiftWhenUnavailable() {
         var assignment = new ShiftAssignment()
                 .setId(new ShiftAssignmentId("irrelevant"))

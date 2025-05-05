@@ -24,7 +24,6 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                 penalizeTooManyConsecutiveShifts(factory),
                 penalizeTooManyShiftCountPerWeek(factory),
                 penalizeAssignedWhenUndesirable(factory),
-                penalizeSingleShifts(factory),
                 penalizeSingleDayOff(factory),
                 penalizeDeviationFromIdealShiftCount(factory),
                 penalizeUnequalWeekendDistribution(factory),
@@ -91,18 +90,6 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                         Joiners.equal(Availability::shiftType, ShiftAssignment::getShiftType)
                                 ).reward(HardSoftScore.ONE_SOFT)
                                 .asConstraint("Reward desirable shifts");
-    }
-
-    Constraint penalizeSingleShifts(ConstraintFactory constraintFactory) {
-        return constraintFactory.forEach(ShiftAssignment.class)
-                                .filter(shiftAssignment -> shiftAssignment.getEmployee() != null)
-                                .groupBy(
-                                        ShiftAssignment::getEmployee,
-                                        ConstraintCollectors.toConsecutiveSequences(assignment -> assignment.getDate().getDayOfYear())
-                                ).flattenLast(SequenceChain::getConsecutiveSequences)
-                                .filter((employee, shiftAssignmentIntegerSequence) -> shiftAssignmentIntegerSequence.getCount() == 1)
-                                .penalize(HardSoftScore.ofSoft(5))
-                                .asConstraint("Penalize single shifts");
     }
 
     Constraint penalizeTooManyConsecutiveShifts(ConstraintFactory constraintFactory) {
@@ -177,21 +164,30 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
 
     Constraint penalizeNightAndDayShiftDisbalance(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
-                                .penalize(
-                                        HardSoftScore.ONE_SOFT,
-                                        employee -> (int) Math.round(Math.pow(employee.getAssignmentInfo().getDayShifts() - employee
-                                                .getAssignmentInfo()
-                                                .getNightShifts(), 2)
-                                        )
-                                ).asConstraint("Penalize unequal shift type distribution");
+                                .map(
+                                        employee -> employee,
+                                        employee -> {
+                                            var days = employee.getAssignmentInfo().getDayShifts();
+                                            var nights = employee.getAssignmentInfo().getNightShifts();
+                                            return Math.abs(days - nights);
+                                        }
+                                ).filter((employee, difference) -> difference > 0)
+                                .penalize(HardSoftScore.ONE_SOFT, (employee, difference) -> (int) Math.round(Math.pow(difference, 2)))
+                                .asConstraint("Penalize unequal shift type distribution");
     }
 
+    //TODO make sure this works as intended
     Constraint penalizeUnequalWeekendDistribution(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
                                 .groupBy(employee -> employee, ConstraintCollectors.average(e -> e.getAssignmentInfo().getWeekendShifts()))
+                                .map(
+                                        (employee, average) -> employee,
+                                        (employee, average) -> Math.abs(Math.round(employee.getAssignmentInfo().getWeekendShifts() - average))
+                                )
+                                .filter((employee, deviation) -> deviation > 0)
                                 .penalize(
                                         HardSoftScore.ONE_SOFT,
-                                        (employee, average) -> (int) Math.round(Math.pow(employee.getAssignmentInfo().getWeekendShifts() - average, 2))
+                                        (employee, deviation) -> (int) Math.round(Math.pow(deviation * 2, 2))
                                 )
                                 .asConstraint("Penalize unequal weekend distribution");
     }

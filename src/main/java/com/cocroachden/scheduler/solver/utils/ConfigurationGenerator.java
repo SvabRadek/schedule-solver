@@ -2,6 +2,7 @@ package com.cocroachden.scheduler.solver.utils;
 
 import com.cocroachden.scheduler.domain.Vocabulary;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -74,7 +75,7 @@ public class ConfigurationGenerator {
         startDate.datesUntil(endDate.plusDays(1)).forEach(date -> {
             var index = (int) ChronoUnit.DAYS.between(startDate, date);
             var headerDayCell = headerRow.createCell(index + 2);
-            headerDayCell.setCellValue(date.getDayOfMonth() + " " + date.getDayOfWeek().name().substring(0, 2));
+            headerDayCell.setCellValue(date.getDayOfMonth() + " " + vocabulary.translate(StringUtils.capitalize(date.getDayOfWeek().name())).substring(0, 2));
             if (date.getDayOfWeek().getValue() > 5) {
                 headerDayCell.getCellStyle().setFillBackgroundColor(IndexedColors.BRIGHT_GREEN.index);
             }

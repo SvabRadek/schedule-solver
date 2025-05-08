@@ -68,7 +68,7 @@ public class ScheduleWriter {
                 newDetailedSheet,
                 startPosition
         );
-        var startPositionForAssignments = Coordinates.of(lastRow + 1, startPosition.column);
+        var startPositionForAssignments = Coordinates.of(lastRow + 1, startPosition.column());
         lastRow = this.writeDetailedSchedule(
                 schedule,
                 newDetailedSheet,
@@ -77,12 +77,12 @@ public class ScheduleWriter {
         this.writeFooter(
                 schedule,
                 newDetailedSheet,
-                Coordinates.of(lastRow + 1, startPosition.column),
-                startPositionForAssignments.row
+                Coordinates.of(lastRow + 1, startPosition.column()),
+                startPositionForAssignments.row()
         );
-        newDetailedSheet.createFreezePane(startPosition.column + 1, startPosition.row + 1);
-        var lastCol = newDetailedSheet.getRow(startPosition.row).getLastCellNum();
-        for (int col = startPosition.column; col < lastCol + 1; col++) {
+        newDetailedSheet.createFreezePane(startPosition.column() + 1, startPosition.row() + 1);
+        var lastCol = newDetailedSheet.getRow(startPosition.row()).getLastCellNum();
+        for (int col = startPosition.column(); col < lastCol + 1; col++) {
             newDetailedSheet.autoSizeColumn(col);
         }
         try (var outStream = new FileOutputStream(output)) {
@@ -94,8 +94,8 @@ public class ScheduleWriter {
     }
 
     private Integer writeHeader(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start) {
-        var currentColumn = new AtomicInteger(start.column);
-        var headerRow = sheet.createRow(start.row);
+        var currentColumn = new AtomicInteger(start.column());
+        var headerRow = sheet.createRow(start.row());
         var nameCell = headerRow.createCell(currentColumn.getAndIncrement());
         nameCell.setCellValue(vocabulary.translate("Name"));
         nameCell.setCellStyle(DEFAULT_STYLE);
@@ -115,15 +115,15 @@ public class ScheduleWriter {
                   cell.setCellValue(vocabulary.translate(content));
                   cell.setCellStyle(DEFAULT_STYLE);
               });
-        return start.row + 1;
+        return start.row() + 1;
     }
 
     private Integer writeDetailedSchedule(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start) {
-        var currentColumn = new AtomicInteger(start.column);
-        var currentRow = new AtomicInteger(start.row);
+        var currentColumn = new AtomicInteger(start.column());
+        var currentRow = new AtomicInteger(start.row());
         schedule.getEmployees().forEach(employee -> {
             var employeeRow = sheet.createRow(currentRow.getAndIncrement());
-            currentColumn.set(start.column);
+            currentColumn.set(start.column());
             var nameCell = employeeRow.createCell(currentColumn.getAndIncrement());
             nameCell.setCellValue(employee.getEmployeeId().id());
             nameCell.setCellStyle(NAME_STYLE);
@@ -164,7 +164,7 @@ public class ScheduleWriter {
                     });
 
             var formulaRow = employeeRow.getRowNum() + 1;
-            var formulaFirstColumn = start.column + 2;
+            var formulaFirstColumn = start.column() + 2;
             var formulaLastColumn = currentColumn.get();
             var countDFormula = "COUNTIF(%s:%s, \"D\")".formatted(
                     toA1(formulaRow, formulaFirstColumn),
@@ -228,16 +228,16 @@ public class ScheduleWriter {
     }
 
     private Integer writeFooter(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start, Integer firstRowOfAssignments) {
-        var currentRow = new AtomicInteger(start.row);
+        var currentRow = new AtomicInteger(start.row());
         Stream.of("Count of D", "Count of N", "Count of V", "Total").forEach(content -> {
-            var cell = sheet.createRow(currentRow.getAndIncrement()).createCell(start.column);
+            var cell = sheet.createRow(currentRow.getAndIncrement()).createCell(start.column());
             cell.setCellValue(vocabulary.translate(content));
             cell.setCellStyle(DEFAULT_STYLE);
         });
-        var currentColumn = new AtomicInteger(start.column + 1);
+        var currentColumn = new AtomicInteger(start.column() + 1);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
-                    currentRow.set(start.row);
+                    currentRow.set(start.row());
                     var lastRowOfAssignments = firstRowOfAssignments + schedule.getEmployees().size();
                     var countOfDFormula = "COUNTIF(%s:%s, \"D\")"
                             .formatted(
@@ -268,7 +268,7 @@ public class ScheduleWriter {
                           });
                     currentColumn.getAndIncrement();
                 });
-        return start.row + 3;
+        return start.row() + 3;
     }
 
 
@@ -346,12 +346,6 @@ public class ScheduleWriter {
         var font = workbook.createFont();
         font.setBold(true);
         return font;
-    }
-
-    private record Coordinates(Integer row, Integer column) {
-        public static Coordinates of(Integer row, Integer column) {
-            return new Coordinates(row, column);
-        }
     }
 
 }

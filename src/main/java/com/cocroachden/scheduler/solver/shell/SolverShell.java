@@ -6,7 +6,7 @@ import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand
 import com.cocroachden.scheduler.solver.fixtures.SolverScheduleFixture;
 import com.cocroachden.scheduler.solver.query.SolverQuery;
 import com.cocroachden.scheduler.solver.utils.ConfigurationGenerator;
-import com.cocroachden.scheduler.solver.utils.ScheduleParser;
+import com.cocroachden.scheduler.solver.utils.ScheduleReader;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.shell.standard.ShellComponent;
@@ -26,8 +26,8 @@ public class SolverShell {
     private final ApplicationEventPublisher publisher;
     private final SolverScheduleFixture fixture;
     private final SolverQuery solverQuery;
-    private final ScheduleParser converter;
     private final ConfigurationGenerator configurationGenerator;
+    private final ScheduleReader reader;
 
     @ShellMethod("solve")
     public String solve() {
@@ -37,7 +37,7 @@ public class SolverShell {
         if (!file.exists() || file.isDirectory()) {
             return "Expected file %s with problem definition not found in expected folder %s.".formatted(filename, folder);
         }
-        var problem = converter.read(file);
+        var problem = reader.read(file);
         var id = UUID.randomUUID();
         publisher.publishEvent(
                 new StartSolvingCommand(
@@ -103,7 +103,7 @@ public class SolverShell {
     public void benchmark() {
         var benchmarkFactory = PlannerBenchmarkFactory.createFromXmlResource("plannerBenchmarkConfig.xml");
         var resource = ClassLoader.getSystemResource("example_problem.xlsx");
-        var problem = converter.read(Path.of(resource.getPath()).toFile());
+        var problem = reader.read(Path.of(resource.getPath()).toFile());
         var benchmark = benchmarkFactory.buildPlannerBenchmark(problem);
         benchmark.benchmarkAndShowReportInBrowser();
     }

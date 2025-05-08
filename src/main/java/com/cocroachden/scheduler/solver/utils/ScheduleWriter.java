@@ -60,30 +60,14 @@ public class ScheduleWriter {
         CORRECT_STYLE = this.createCorrectStyle(wb);
         FAILED_STYLE = this.createFailedStyle(wb);
         DEFAULT_SCHEDULE_STYLE = this.createDefaultScheduleStyle(wb);
-        var newDetailedSheet = wb.createSheet(vocabulary.translate("Schedule"));
-        final var startPosition = Coordinates.of(4, 0);
-        var lastRow = 0;
-        lastRow = this.writeHeader(
-                schedule,
-                newDetailedSheet,
-                startPosition
-        );
-        var startPositionForAssignments = Coordinates.of(lastRow + 1, startPosition.column());
-        lastRow = this.writeDetailedSchedule(
-                schedule,
-                newDetailedSheet,
-                startPositionForAssignments
-        );
-        this.writeFooter(
-                schedule,
-                newDetailedSheet,
-                Coordinates.of(lastRow + 1, startPosition.column()),
-                startPositionForAssignments.row()
-        );
-        newDetailedSheet.createFreezePane(startPosition.column() + 1, startPosition.row() + 1);
-        var lastCol = newDetailedSheet.getRow(startPosition.row()).getLastCellNum();
-        for (int col = startPosition.column(); col < lastCol + 1; col++) {
-            newDetailedSheet.autoSizeColumn(col);
+        var resultSheet = wb.createSheet(vocabulary.translate(ScheduleProperties.RESULT_WB_NAME));
+        this.writeHeader(schedule, resultSheet);
+        var lastRow = this.writeSchedule(schedule, resultSheet);
+        this.writeFooter(schedule, resultSheet, lastRow + 1);
+        resultSheet.createFreezePane(ScheduleProperties.HEADER_START.column() + 1, ScheduleProperties.HEADER_START.row() + 1);
+        var lastCol = resultSheet.getRow(ScheduleProperties.HEADER_START.row()).getLastCellNum();
+        for (int col = ScheduleProperties.HEADER_START.column(); col < lastCol + 1; col++) {
+            resultSheet.autoSizeColumn(col);
         }
         try (var outStream = new FileOutputStream(output)) {
             wb.write(outStream);
@@ -93,9 +77,9 @@ public class ScheduleWriter {
         }
     }
 
-    private Integer writeHeader(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start) {
-        var currentColumn = new AtomicInteger(start.column());
-        var headerRow = sheet.createRow(start.row());
+    private void writeHeader(EmployeeSchedule schedule, XSSFSheet sheet) {
+        var currentColumn = new AtomicInteger(ScheduleProperties.HEADER_START.column());
+        var headerRow = sheet.createRow(ScheduleProperties.HEADER_START.row());
         var nameCell = headerRow.createCell(currentColumn.getAndIncrement());
         nameCell.setCellValue(vocabulary.translate("Name"));
         nameCell.setCellStyle(DEFAULT_STYLE);
@@ -115,15 +99,14 @@ public class ScheduleWriter {
                   cell.setCellValue(vocabulary.translate(content));
                   cell.setCellStyle(DEFAULT_STYLE);
               });
-        return start.row() + 1;
     }
 
-    private Integer writeDetailedSchedule(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start) {
-        var currentColumn = new AtomicInteger(start.column());
-        var currentRow = new AtomicInteger(start.row());
+    private Integer writeSchedule(EmployeeSchedule schedule, XSSFSheet sheet) {
+        var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column());
+        var currentRow = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.row());
         schedule.getEmployees().forEach(employee -> {
             var employeeRow = sheet.createRow(currentRow.getAndIncrement());
-            currentColumn.set(start.column());
+            currentColumn.set(ScheduleProperties.SCHEDULE_TABLE_START.column());
             var nameCell = employeeRow.createCell(currentColumn.getAndIncrement());
             nameCell.setCellValue(employee.getEmployeeId().id());
             nameCell.setCellStyle(NAME_STYLE);
@@ -164,7 +147,7 @@ public class ScheduleWriter {
                     });
 
             var formulaRow = employeeRow.getRowNum() + 1;
-            var formulaFirstColumn = start.column() + 2;
+            var formulaFirstColumn = ScheduleProperties.SCHEDULE_TABLE_START.column() + 2;
             var formulaLastColumn = currentColumn.get();
             var countDFormula = "COUNTIF(%s:%s, \"D\")".formatted(
                     toA1(formulaRow, formulaFirstColumn),
@@ -227,36 +210,36 @@ public class ScheduleWriter {
         return colRef.toString() + row;
     }
 
-    private Integer writeFooter(EmployeeSchedule schedule, XSSFSheet sheet, Coordinates start, Integer firstRowOfAssignments) {
-        var currentRow = new AtomicInteger(start.row());
+    private void writeFooter(EmployeeSchedule schedule, XSSFSheet sheet, Integer startRow) {
+        var currentRow = new AtomicInteger(startRow);
         Stream.of("Count of D", "Count of N", "Count of V", "Total").forEach(content -> {
-            var cell = sheet.createRow(currentRow.getAndIncrement()).createCell(start.column());
+            var cell = sheet.createRow(currentRow.getAndIncrement()).createCell(ScheduleProperties.SCHEDULE_TABLE_START.column());
             cell.setCellValue(vocabulary.translate(content));
             cell.setCellStyle(DEFAULT_STYLE);
         });
-        var currentColumn = new AtomicInteger(start.column() + 1);
+        var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column() + 1);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
-                    currentRow.set(start.row());
-                    var lastRowOfAssignments = firstRowOfAssignments + schedule.getEmployees().size();
+                    currentRow.set(startRow);
+                    var lastRowOfAssignments = ScheduleProperties.SCHEDULE_TABLE_START.row() + schedule.getEmployees().size();
                     var countOfDFormula = "COUNTIF(%s:%s, \"D\")"
                             .formatted(
-                                    toA1(firstRowOfAssignments + 1, currentColumn.get() + 1),
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
                                     toA1(lastRowOfAssignments, currentColumn.get() + 1)
                             );
                     var countOfNFormula = "COUNTIF(%s:%s, \"N\")"
                             .formatted(
-                                    toA1(firstRowOfAssignments + 1, currentColumn.get() + 1),
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
                                     toA1(lastRowOfAssignments, currentColumn.get() + 1)
                             );
                     var countOfVFormula = "COUNTBLANK(%s:%s)"
                             .formatted(
-                                    toA1(firstRowOfAssignments + 1, currentColumn.get() + 1),
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
                                     toA1(lastRowOfAssignments, currentColumn.get() + 1)
                             );
                     var totalFormula = "COUNTA(%s:%s)"
                             .formatted(
-                                    toA1(firstRowOfAssignments + 1, currentColumn.get() + 1),
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
                                     toA1(lastRowOfAssignments, currentColumn.get() + 1)
                             );
 
@@ -268,7 +251,6 @@ public class ScheduleWriter {
                           });
                     currentColumn.getAndIncrement();
                 });
-        return start.row() + 3;
     }
 
 

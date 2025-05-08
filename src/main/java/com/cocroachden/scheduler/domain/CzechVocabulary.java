@@ -20,6 +20,7 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Off", "Volno");
         VOCABULARY.put("Negative", "Zapor");
         VOCABULARY.put("Desirable", "Chteny");
+        VOCABULARY.put("Result", "Vysledek");
         VOCABULARY.put("Undesirable", "Nechteny");
         VOCABULARY.put("Name", "Jmeno");
         VOCABULARY.put("Ideal shift count", "Idealni pocet smen");

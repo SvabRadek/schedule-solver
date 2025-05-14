@@ -16,7 +16,6 @@ import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
-import org.springframework.util.Assert;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -36,10 +35,8 @@ public class ScheduleWriter {
     private XSSFCellStyle WEEKEND_STYLE;
     private XSSFCellStyle DEFAULT_STYLE;
     private XSSFCellStyle DEFAULT_SCHEDULE_STYLE;
-    private XSSFCellStyle NAME_STYLE;
     private XSSFCellStyle CORRECT_STYLE;
     private XSSFCellStyle FAILED_STYLE;
-    private XSSFFont BOLD_FONT;
 
     static {
         WEEK_DAY_TRANSLATIONS.put(DayOfWeek.MONDAY, "Po");
@@ -52,21 +49,17 @@ public class ScheduleWriter {
     }
 
     public void write(EmployeeSchedule schedule, File output) {
+        var isBlank = schedule.getShiftAssignments().stream().noneMatch(sa -> sa.getEmployee() != null);
         var wb = new XSSFWorkbook();
-        BOLD_FONT = this.createBoldFont(wb);
-        WEEKEND_STYLE = this.createWeekendStyle(wb);
-        DEFAULT_STYLE = this.createDefaultStyle(wb);
-        NAME_STYLE = this.createNameStyle(wb);
-        CORRECT_STYLE = this.createCorrectStyle(wb);
-        FAILED_STYLE = this.createFailedStyle(wb);
-        DEFAULT_SCHEDULE_STYLE = this.createDefaultScheduleStyle(wb);
-        var resultSheet = wb.createSheet(vocabulary.translate(ScheduleProperties.RESULT_WB_NAME));
+        this.initializeStyles(wb);
+        var resultSheet = wb.createSheet(vocabulary.translate(isBlank ? ScheduleProperties.SCHEDULE_SHEET_NAME : ScheduleProperties.RESULT_WB_NAME));
+        this.writeSettings(schedule, resultSheet);
         this.writeHeader(schedule, resultSheet);
-        var lastRow = this.writeSchedule(schedule, resultSheet);
+        var lastRow = this.writeSchedule(schedule, resultSheet, isBlank);
         this.writeFooter(schedule, resultSheet, lastRow + 1);
         resultSheet.createFreezePane(ScheduleProperties.HEADER_START.column() + 1, ScheduleProperties.HEADER_START.row() + 1);
         var lastCol = resultSheet.getRow(ScheduleProperties.HEADER_START.row()).getLastCellNum();
-        for (int col = ScheduleProperties.HEADER_START.column(); col < lastCol + 1; col++) {
+        for (int col = ScheduleProperties.HEADER_START.column(); col <= lastCol; col++) {
             resultSheet.autoSizeColumn(col);
         }
         try (var outStream = new FileOutputStream(output)) {
@@ -77,12 +70,50 @@ public class ScheduleWriter {
         }
     }
 
+    //TODO It will always print 3 day/3 night workers required no matter what. Fix it.
+    private void writeSettings(EmployeeSchedule schedule, XSSFSheet sheet) {
+        var startDateRow = sheet.createRow(ScheduleProperties.START_DATE_VALUE_CELL.row());
+        var startDateHeader = startDateRow.createCell(ScheduleProperties.START_DATE_VALUE_CELL.column() - 1);
+        var startDateValue = startDateRow.createCell(ScheduleProperties.START_DATE_VALUE_CELL.column());
+        startDateHeader.setCellValue(vocabulary.translate("Start"));
+        startDateValue.setCellValue(schedule.getStartDate().format(ScheduleProperties.SCHEDULE_DATE_FORMAT));
+        startDateHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
+        startDateValue.setCellStyle(DEFAULT_STYLE);
+
+        var endDateRow = sheet.createRow(ScheduleProperties.END_DATE_VALUE_CELL.row());
+        var endDateHeader = endDateRow.createCell(ScheduleProperties.END_DATE_VALUE_CELL.column() - 1);
+        var endDateValue = endDateRow.createCell(ScheduleProperties.END_DATE_VALUE_CELL.column());
+        endDateHeader.setCellValue(vocabulary.translate("End"));
+        endDateValue.setCellValue(schedule.getEndDate().format(ScheduleProperties.SCHEDULE_DATE_FORMAT));
+        endDateHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
+        endDateValue.setCellStyle(DEFAULT_STYLE);
+
+        var peopleOnDayShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row());
+        var peopleOnDayShiftRowHeader = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column() - 1);
+        var peopleOnDayShiftRowValue = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column());
+        peopleOnDayShiftRowHeader.setCellValue(vocabulary.translate("Required employee count on day shift"));
+        peopleOnDayShiftRowValue.setCellValue(3);
+        peopleOnDayShiftRowHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
+        peopleOnDayShiftRowValue.setCellStyle(DEFAULT_STYLE);
+
+        var peopleOnNightShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row());
+        var peopleOnNightShiftHeader = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column() - 1);
+        var peopleOnNightShiftValue = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column());
+        peopleOnNightShiftHeader.setCellValue(vocabulary.translate("Required employee count on night shift"));
+        peopleOnNightShiftValue.setCellValue(3);
+        peopleOnNightShiftHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
+        peopleOnNightShiftValue.setCellStyle(DEFAULT_STYLE);
+    }
+
     private void writeHeader(EmployeeSchedule schedule, XSSFSheet sheet) {
         var currentColumn = new AtomicInteger(ScheduleProperties.HEADER_START.column());
         var headerRow = sheet.createRow(ScheduleProperties.HEADER_START.row());
         var nameCell = headerRow.createCell(currentColumn.getAndIncrement());
         nameCell.setCellValue(vocabulary.translate("Name"));
         nameCell.setCellStyle(DEFAULT_STYLE);
+        var shiftCountCell = headerRow.createCell(currentColumn.getAndIncrement());
+        shiftCountCell.setCellValue(vocabulary.translate("Ideal shift count"));
+        shiftCountCell.setCellStyle(DEFAULT_STYLE);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
                     var cell = headerRow.createCell(currentColumn.getAndIncrement());
@@ -101,7 +132,7 @@ public class ScheduleWriter {
               });
     }
 
-    private Integer writeSchedule(EmployeeSchedule schedule, XSSFSheet sheet) {
+    private Integer writeSchedule(EmployeeSchedule schedule, XSSFSheet sheet, final Boolean isBlank) {
         var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column());
         var currentRow = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.row());
         schedule.getEmployees().forEach(employee -> {
@@ -109,7 +140,18 @@ public class ScheduleWriter {
             currentColumn.set(ScheduleProperties.SCHEDULE_TABLE_START.column());
             var nameCell = employeeRow.createCell(currentColumn.getAndIncrement());
             nameCell.setCellValue(employee.getEmployeeId().id());
-            nameCell.setCellStyle(NAME_STYLE);
+            nameCell.setCellStyle(DEFAULT_SCHEDULE_STYLE);
+            var assignmentsCell = employeeRow.createCell(currentColumn.getAndIncrement());
+            assignmentsCell.setCellValue(employee.getIdealShiftCount());
+            if (isBlank) {
+                assignmentsCell.setCellStyle(DEFAULT_STYLE);
+            } else {
+                if (employee.getIdealShiftCount().equals(employee.getShiftAssignments().size())) {
+                    assignmentsCell.setCellStyle(CORRECT_STYLE);
+                } else {
+                    assignmentsCell.setCellStyle(FAILED_STYLE);
+                }
+            }
             schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                     .forEach(date -> {
                         var availabilities = schedule.getAvailabilities().stream()
@@ -121,11 +163,7 @@ public class ScheduleWriter {
                                                  .findAny();
                         var assignmentSymbol = assignment
                                 .map(a -> a.getShiftType().getSymbol())
-                                .orElseGet(() -> {
-                                    //TODO ask jana
-//                                    if (availabilities.size() == 2) return "RD";
-                                    return "";
-                                });
+                                .orElse("");
                         var cell = employeeRow.createCell(currentColumn.getAndIncrement());
                         cell.setCellValue(assignmentSymbol);
                         if (availabilities.isEmpty()) {
@@ -146,9 +184,9 @@ public class ScheduleWriter {
                         }
                     });
 
-            var formulaRow = employeeRow.getRowNum() + 1;
+            var formulaRow = employeeRow.getRowNum();
             var formulaFirstColumn = ScheduleProperties.SCHEDULE_TABLE_START.column() + 2;
-            var formulaLastColumn = currentColumn.get();
+            var formulaLastColumn = currentColumn.get() - 1;
             var countDFormula = "COUNTIF(%s:%s, \"D\")".formatted(
                     toA1(formulaRow, formulaFirstColumn),
                     toA1(formulaRow, formulaLastColumn)
@@ -197,19 +235,6 @@ public class ScheduleWriter {
         };
     }
 
-    private String toA1(final int row, final int column) {
-        Assert.isTrue(row > 0, "Row must be more than 0");
-        Assert.isTrue(column > 0, "Column must be more than 0");
-        StringBuilder colRef = new StringBuilder();
-        int col = column;
-        while (col > 0) {
-            col--; // Excel columns are 1-indexed, but 'A' starts at 0
-            colRef.insert(0, (char) ( 'A' + ( col % 26 ) ));
-            col /= 26;
-        }
-        return colRef.toString() + row;
-    }
-
     private void writeFooter(EmployeeSchedule schedule, XSSFSheet sheet, Integer startRow) {
         var currentRow = new AtomicInteger(startRow);
         Stream.of("Count of D", "Count of N", "Count of V", "Total").forEach(content -> {
@@ -217,30 +242,30 @@ public class ScheduleWriter {
             cell.setCellValue(vocabulary.translate(content));
             cell.setCellStyle(DEFAULT_STYLE);
         });
-        var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column() + 1);
+        var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column() + 2);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
                     currentRow.set(startRow);
                     var lastRowOfAssignments = ScheduleProperties.SCHEDULE_TABLE_START.row() + schedule.getEmployees().size();
                     var countOfDFormula = "COUNTIF(%s:%s, \"D\")"
                             .formatted(
-                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
-                                    toA1(lastRowOfAssignments, currentColumn.get() + 1)
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row(), currentColumn.get()),
+                                    toA1(lastRowOfAssignments, currentColumn.get())
                             );
                     var countOfNFormula = "COUNTIF(%s:%s, \"N\")"
                             .formatted(
-                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
-                                    toA1(lastRowOfAssignments, currentColumn.get() + 1)
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row(), currentColumn.get()),
+                                    toA1(lastRowOfAssignments, currentColumn.get())
                             );
                     var countOfVFormula = "COUNTBLANK(%s:%s)"
                             .formatted(
-                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
-                                    toA1(lastRowOfAssignments, currentColumn.get() + 1)
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row(), currentColumn.get()),
+                                    toA1(lastRowOfAssignments, currentColumn.get())
                             );
                     var totalFormula = "COUNTA(%s:%s)"
                             .formatted(
-                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row() + 1, currentColumn.get() + 1),
-                                    toA1(lastRowOfAssignments, currentColumn.get() + 1)
+                                    toA1(ScheduleProperties.SCHEDULE_TABLE_START.row(), currentColumn.get()),
+                                    toA1(lastRowOfAssignments, currentColumn.get())
                             );
 
                     Stream.of(countOfDFormula, countOfNFormula, countOfVFormula, totalFormula)
@@ -253,83 +278,43 @@ public class ScheduleWriter {
                 });
     }
 
-
-    private XSSFCellStyle createDefaultStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        return style;
+    private String toA1(final int row, final int column) {
+        StringBuilder colRef = new StringBuilder();
+        int col = column;
+        do {
+            colRef.insert(0, (char) ('A' + (col % 26)));
+            col /= 26;
+            col--;
+        } while (col >= 0);
+        return colRef.toString() + (row + 1);
     }
 
-    private XSSFCellStyle createDefaultScheduleStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setFont(BOLD_FONT);
-        return style;
-    }
+    private void initializeStyles(XSSFWorkbook workbook) {
+        XSSFFont boldFont = workbook.createFont();
+        boldFont.setBold(true);
 
-    private XSSFCellStyle createNameStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setFont(BOLD_FONT);
-        return style;
-    }
+        DEFAULT_STYLE = workbook.createCellStyle();
+        DEFAULT_STYLE.setAlignment(HorizontalAlignment.CENTER);
+        DEFAULT_STYLE.setBorderBottom(BorderStyle.THIN);
+        DEFAULT_STYLE.setBorderTop(BorderStyle.THIN);
+        DEFAULT_STYLE.setBorderLeft(BorderStyle.THIN);
+        DEFAULT_STYLE.setBorderRight(BorderStyle.THIN);
 
-    private XSSFCellStyle createCorrectStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setFillForegroundColor(IndexedColors.GREEN.getIndex());
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setFont(BOLD_FONT);
-        return style;
-    }
+        DEFAULT_SCHEDULE_STYLE = DEFAULT_STYLE.copy();
+        DEFAULT_SCHEDULE_STYLE.setFont(boldFont);
 
-    private XSSFCellStyle createFailedStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setFillForegroundColor(IndexedColors.RED.getIndex());
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        style.setFont(BOLD_FONT);
-        return style;
-    }
+        CORRECT_STYLE = DEFAULT_SCHEDULE_STYLE.copy();
+        CORRECT_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        CORRECT_STYLE.setFillForegroundColor(IndexedColors.GREEN.getIndex());
 
-    private XSSFCellStyle createWeekendStyle(XSSFWorkbook workbook) {
-        XSSFCellStyle style = workbook.createCellStyle();
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setFillForegroundColor(IndexedColors.BLUE.getIndex());
-        style.setBorderBottom(BorderStyle.THIN);
-        style.setBorderTop(BorderStyle.THIN);
-        style.setBorderLeft(BorderStyle.THIN);
-        style.setBorderRight(BorderStyle.THIN);
-        return style;
-    }
+        FAILED_STYLE = DEFAULT_SCHEDULE_STYLE.copy();
+        FAILED_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        FAILED_STYLE.setFillForegroundColor(IndexedColors.RED.getIndex());
 
-    private XSSFFont createBoldFont(XSSFWorkbook workbook) {
-        var font = workbook.createFont();
-        font.setBold(true);
-        return font;
+        WEEKEND_STYLE = DEFAULT_STYLE.copy();
+        WEEKEND_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        WEEKEND_STYLE.setFillForegroundColor(IndexedColors.BLUE.getIndex());
     }
-
 }
 
 

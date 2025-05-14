@@ -27,6 +27,7 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("D", "D");
         VOCABULARY.put("N", "N");
         VOCABULARY.put("O", "V");
+        VOCABULARY.put("Employee", "Zamestnanec");
         VOCABULARY.put("Employee1", "Zamestnanec1");
         VOCABULARY.put("Employee2", "Zamestnanec2");
         VOCABULARY.put("Required employee count on day shift", "Pocet lidi na denni");

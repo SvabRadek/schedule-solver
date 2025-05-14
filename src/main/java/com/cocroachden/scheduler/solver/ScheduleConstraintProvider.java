@@ -30,6 +30,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                 penalizeNightAndDayShiftDisbalance(factory),
                 rewardAssignedWhenDesirable(factory),
                 rewardFullWorkWeekends(factory),
+                penalizeLessShiftsThanMinimum(factory)
         };
     }
 
@@ -126,6 +127,13 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                 .filter((first, second) -> first.getShiftType() == ShiftType.NIGHT && second.getShiftType() == ShiftType.DAY)
                 .penalize(HardSoftScore.ofHard(100))
                 .asConstraint("No day shifts after night shifts");
+    }
+
+    Constraint penalizeLessShiftsThanMinimum(ConstraintFactory constraintFactory) {
+        return constraintFactory.forEach(Employee.class)
+                                .filter(e -> e.getAssignmentInfo().getTotalCount() < e.getIdealShiftCount())
+                                .penalize(HardSoftScore.ONE_HARD)
+                                .asConstraint("No less assignments than minimum");
     }
 
     Constraint rewardFullWorkWeekends(ConstraintFactory constraintFactory) {

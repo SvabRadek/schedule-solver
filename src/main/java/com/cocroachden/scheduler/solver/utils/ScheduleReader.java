@@ -11,14 +11,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 
 @Service
 public class ScheduleReader {
-
-    public static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("d.M.yyyy");
 
     public EmployeeSchedule read(File inputFile) {
         try (
@@ -44,28 +41,29 @@ public class ScheduleReader {
 
     private void readSchedule(XSSFSheet sheet, EmployeeSchedule schedule) {
         LocalDate startDate = LocalDate.parse(
-                sheet.getRow(0).getCell(1).getStringCellValue(),
-                DATE_TIME_FORMATTER
+                sheet.getRow(ScheduleProperties.START_DATE_VALUE_CELL.row()).getCell(ScheduleProperties.START_DATE_VALUE_CELL.column()).getStringCellValue(),
+                ScheduleProperties.SCHEDULE_DATE_FORMAT
         );
         LocalDate endDate = LocalDate.parse(
-                sheet.getRow(1).getCell(1).getStringCellValue(),
-                DATE_TIME_FORMATTER
+                sheet.getRow(ScheduleProperties.END_DATE_VALUE_CELL.row()).getCell(ScheduleProperties.END_DATE_VALUE_CELL.column()).getStringCellValue(),
+                ScheduleProperties.SCHEDULE_DATE_FORMAT
         );
         schedule.setStartDate(startDate);
         schedule.setEndDate(endDate);
         var employees = new ArrayList<Employee>();
         var availabilities = new ArrayList<Availability>();
-        for (int i = 4; i <= sheet.getLastRowNum(); i++) {
+        //TODO this will also pick up footer, which it shouldn't
+        for (int i = ScheduleProperties.SCHEDULE_TABLE_START.row(); i <= sheet.getLastRowNum(); i++) {
             var employeeRow = sheet.getRow(i);
             if (employeeRow == null) break;
-            var nameCell = employeeRow.getCell(0);
+            var nameCell = employeeRow.getCell(ScheduleProperties.SCHEDULE_TABLE_START.column());
             if (nameCell == null) break;
             var name = nameCell.getStringCellValue();
-            var idealShiftCount = sheet.getRow(i).getCell(1).getNumericCellValue();
+            var idealShiftCount = sheet.getRow(i).getCell(ScheduleProperties.SCHEDULE_TABLE_START.column() + 1).getNumericCellValue();
             if (name.isBlank()) break;
             Employee employee = new Employee(new EmployeeId(name), (int) Math.round(idealShiftCount));
             var lastCell = sheet.getRow(i).getLastCellNum();
-            for (int j = 2; j < lastCell + 1; j++) {
+            for (int j = ScheduleProperties.SCHEDULE_TABLE_START.column() + 2; j < lastCell + 1; j++) {
                 var cell = sheet.getRow(i).getCell(j);
                 if (cell == null) continue;
                 var symbol = cell.getStringCellValue();
@@ -113,8 +111,14 @@ public class ScheduleReader {
     }
 
     private void readSettings(final XSSFSheet settingsSheet, final EmployeeSchedule schedule) {
-        var employeesPerDayShift = settingsSheet.getRow(0).getCell(1).getNumericCellValue();
-        var employeesPerNightShift = settingsSheet.getRow(1).getCell(1).getNumericCellValue();
+        var employeesPerDayShift = settingsSheet
+                .getRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row())
+                .getCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column())
+                .getNumericCellValue();
+        var employeesPerNightShift = settingsSheet
+                .getRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row())
+                .getCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column())
+                .getNumericCellValue();
         var assignments = new LinkedHashSet<ShiftAssignment>();
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1)).forEach(date -> {
             for (int i = 0; i < employeesPerDayShift; i++) {

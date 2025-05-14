@@ -1,12 +1,16 @@
 package com.cocroachden.scheduler.solver.shell;
 
 import ai.timefold.solver.benchmark.api.PlannerBenchmarkFactory;
+import com.cocroachden.scheduler.domain.EmployeeId;
 import com.cocroachden.scheduler.domain.SolvingId;
+import com.cocroachden.scheduler.domain.Vocabulary;
+import com.cocroachden.scheduler.solver.Employee;
+import com.cocroachden.scheduler.solver.EmployeeSchedule;
 import com.cocroachden.scheduler.solver.command.startsolving.StartSolvingCommand;
 import com.cocroachden.scheduler.solver.fixtures.SolverScheduleFixture;
 import com.cocroachden.scheduler.solver.query.SolverQuery;
-import com.cocroachden.scheduler.solver.utils.ConfigurationGenerator;
 import com.cocroachden.scheduler.solver.utils.ScheduleReader;
+import com.cocroachden.scheduler.solver.utils.ScheduleWriter;
 import lombok.AllArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.shell.standard.ShellComponent;
@@ -18,6 +22,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Scanner;
 import java.util.UUID;
+import java.util.stream.IntStream;
 
 @ShellComponent
 @AllArgsConstructor
@@ -26,8 +31,9 @@ public class SolverShell {
     private final ApplicationEventPublisher publisher;
     private final SolverScheduleFixture fixture;
     private final SolverQuery solverQuery;
-    private final ConfigurationGenerator configurationGenerator;
     private final ScheduleReader reader;
+    private final ScheduleWriter scheduleWriter;
+    private final Vocabulary vocabulary;
 
     @ShellMethod("solve")
     public String solve() {
@@ -63,19 +69,30 @@ public class SolverShell {
     @ShellMethod("generate")
     public void generate() {
         var scanner = new Scanner(System.in);
-        final var pathname = System.getProperty("user.dir") + "/" + configurationGenerator.getInputFileName();
+        final var pathname = System.getProperty("user.dir") + "/" + vocabulary.translate("Schedule") + ".xlsx";
         var file = new File(pathname);
         if (file.exists() && file.isFile()) {
-            if (!this.shouldOverwriteFile(pathname, scanner)) return;
+            if (!this.shouldOverwriteFile(pathname, scanner)) {
+                return;
+            }
         }
         System.out.println("Please enter start date in format D.M.YY");
         var startDate = scanner.next();
         System.out.println("Please enter end date in format D.M.YY");
         var endDate = scanner.next();
+        System.out.println("Please enter number of employees");
+        var numOfEmployees = scanner.nextInt();
         var formatter = DateTimeFormatter.ofPattern("d.M.yy");
         var parsedStartDate = LocalDate.parse(startDate, formatter);
         var parsedEndDate = LocalDate.parse(endDate, formatter);
-        configurationGenerator.generate(parsedStartDate, parsedEndDate);
+
+        var schedule = new EmployeeSchedule();
+        schedule.setStartDate(parsedStartDate);
+        schedule.setEndDate(parsedEndDate);
+
+        IntStream.range(0, numOfEmployees)
+                .forEach(i -> schedule.getEmployees().add(new Employee(new EmployeeId(vocabulary.translate("Employee") + i), 10)));
+        scheduleWriter.write(schedule, file);
         System.out.println("Done!");
     }
 

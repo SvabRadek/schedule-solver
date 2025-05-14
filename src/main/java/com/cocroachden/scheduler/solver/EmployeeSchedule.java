@@ -25,10 +25,10 @@ public class EmployeeSchedule {
 
     @ProblemFactCollectionProperty
     @ValueRangeProvider
-    private List<Employee> employees;
+    private List<Employee> employees = new ArrayList<>();
 
     @ProblemFactCollectionProperty
-    private List<Availability> availabilities;
+    private List<Availability> availabilities = new ArrayList<>();
 
     @PlanningEntityCollectionProperty
     private Set<ShiftAssignment> shiftAssignments = new LinkedHashSet<>();

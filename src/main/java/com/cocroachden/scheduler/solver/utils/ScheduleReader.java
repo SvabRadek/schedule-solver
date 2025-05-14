@@ -3,6 +3,7 @@ package com.cocroachden.scheduler.solver.utils;
 import com.cocroachden.scheduler.domain.EmployeeId;
 import com.cocroachden.scheduler.domain.ShiftAssignmentId;
 import com.cocroachden.scheduler.solver.*;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
@@ -24,15 +25,11 @@ public class ScheduleReader {
         ) {
             var schedule = new EmployeeSchedule();
             var scheduleSheet = workbook.getSheet("Rozvrh");
-            var settingsSheet = workbook.getSheet("Nastaveni");
             if (scheduleSheet == null) {
                 throw ScheduleReaderException.becauseCouldNotFindSheet("Rozvrh");
             }
-            if (settingsSheet == null) {
-                throw ScheduleReaderException.becauseCouldNotFindSheet("Nastaveni");
-            }
             this.readSchedule(scheduleSheet, schedule);
-            this.readSettings(settingsSheet, schedule);
+            this.createShiftAssignments(scheduleSheet, schedule);
             return schedule;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -59,13 +56,14 @@ public class ScheduleReader {
             var nameCell = employeeRow.getCell(ScheduleProperties.SCHEDULE_TABLE_START.column());
             if (nameCell == null) break;
             var name = nameCell.getStringCellValue();
-            var idealShiftCount = sheet.getRow(i).getCell(ScheduleProperties.SCHEDULE_TABLE_START.column() + 1).getNumericCellValue();
             if (name.isBlank()) break;
+            var idealShiftCount = sheet.getRow(i).getCell(ScheduleProperties.SCHEDULE_TABLE_START.column() + 1).getNumericCellValue();
             Employee employee = new Employee(new EmployeeId(name), (int) Math.round(idealShiftCount));
             var lastCell = sheet.getRow(i).getLastCellNum();
             for (int j = ScheduleProperties.SCHEDULE_TABLE_START.column() + 2; j < lastCell + 1; j++) {
                 var cell = sheet.getRow(i).getCell(j);
                 if (cell == null) continue;
+                cell.setCellType(CellType.STRING);
                 var symbol = cell.getStringCellValue();
                 if (symbol.isBlank()) continue;
                 var date = startDate.plusDays(j - 2);
@@ -110,12 +108,12 @@ public class ScheduleReader {
         schedule.setAvailabilities(availabilities);
     }
 
-    private void readSettings(final XSSFSheet settingsSheet, final EmployeeSchedule schedule) {
-        var employeesPerDayShift = settingsSheet
+    private void createShiftAssignments(final XSSFSheet sheet, final EmployeeSchedule schedule) {
+        var employeesPerDayShift = sheet
                 .getRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row())
                 .getCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column())
                 .getNumericCellValue();
-        var employeesPerNightShift = settingsSheet
+        var employeesPerNightShift = sheet
                 .getRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row())
                 .getCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column())
                 .getNumericCellValue();

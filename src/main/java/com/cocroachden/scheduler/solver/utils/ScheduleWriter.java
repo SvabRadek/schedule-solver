@@ -146,7 +146,7 @@ public class ScheduleWriter {
             if (isBlank) {
                 assignmentsCell.setCellStyle(DEFAULT_STYLE);
             } else {
-                if (employee.getIdealShiftCount().equals(employee.getShiftAssignments().size())) {
+                if (employee.getIdealShiftCount() <= employee.getShiftAssignments().size()) {
                     assignmentsCell.setCellStyle(CORRECT_STYLE);
                 } else {
                     assignmentsCell.setCellStyle(FAILED_STYLE);

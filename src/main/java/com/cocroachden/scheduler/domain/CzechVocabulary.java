@@ -24,6 +24,7 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Undesirable", "Nechteny");
         VOCABULARY.put("Name", "Jmeno");
         VOCABULARY.put("Ideal shift count", "Idealni pocet smen");
+        VOCABULARY.put("Minimum shift count", "Minimalni pocet smen");
         VOCABULARY.put("D", "D");
         VOCABULARY.put("N", "N");
         VOCABULARY.put("O", "V");
@@ -68,6 +69,7 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Count of N", "Pocet N");
         VOCABULARY.put("Count of V", "Pocet V");
         VOCABULARY.put("Total", "Celkem");
+        VOCABULARY.put("Summary", "Shrnuti");
     }
 
     @Override

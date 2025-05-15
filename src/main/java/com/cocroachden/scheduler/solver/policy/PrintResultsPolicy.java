@@ -30,14 +30,15 @@ public class PrintResultsPolicy {
     public void on(SolutionHasBeenFound event) {
         log.info("Solution has been found");
         event.schedule().printResults();
-        System.out.println(solutionManager.analyze(event.schedule()).summarize());
+        final var analysis = solutionManager.analyze(event.schedule());
+        System.out.println(analysis.summarize());
         if (scheduledTask != null && !scheduledTask.isDone()) {
             scheduledTask.cancel(false);
         }
         scheduledTask = executor.schedule(() -> {
             var path = Path.of(System.getProperty("user.dir") + "/Vysledek.xlsx");
             log.info("Writing latest solution to file '{}'", path);
-            scheduleWriter.write(event.schedule(), path.toFile());
+            scheduleWriter.write(event.schedule(), path.toFile(), analysis.summarize());
         }, 5, TimeUnit.SECONDS);
 
     }

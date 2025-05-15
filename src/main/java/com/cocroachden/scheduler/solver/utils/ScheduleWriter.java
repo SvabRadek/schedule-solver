@@ -49,6 +49,10 @@ public class ScheduleWriter {
     }
 
     public void write(EmployeeSchedule schedule, File output) {
+        this.write(schedule, output, "");
+    }
+
+    public void write(EmployeeSchedule schedule, File output, String summary) {
         var isBlank = schedule.getShiftAssignments().stream().noneMatch(sa -> sa.getEmployee() != null);
         var wb = new XSSFWorkbook();
         this.initializeStyles(wb);
@@ -61,6 +65,15 @@ public class ScheduleWriter {
         var lastCol = resultSheet.getRow(ScheduleProperties.HEADER_START.row()).getLastCellNum();
         for (int col = ScheduleProperties.HEADER_START.column(); col <= lastCol; col++) {
             resultSheet.autoSizeColumn(col);
+        }
+        if (!summary.isBlank()) {
+            var sheet = wb.createSheet(vocabulary.translate("Summary"));
+            var cell = sheet.createRow(0).createCell(0);
+            cell.setCellValue(summary);
+            var style = wb.createCellStyle();
+            style.setWrapText(true);
+            cell.setCellStyle(style);
+            sheet.autoSizeColumn(0);
         }
         try (var outStream = new FileOutputStream(output)) {
             wb.write(outStream);
@@ -112,7 +125,7 @@ public class ScheduleWriter {
         nameCell.setCellValue(vocabulary.translate("Name"));
         nameCell.setCellStyle(DEFAULT_STYLE);
         var shiftCountCell = headerRow.createCell(currentColumn.getAndIncrement());
-        shiftCountCell.setCellValue(vocabulary.translate("Ideal shift count"));
+        shiftCountCell.setCellValue(vocabulary.translate("Minimum shift count"));
         shiftCountCell.setCellStyle(DEFAULT_STYLE);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
@@ -282,11 +295,11 @@ public class ScheduleWriter {
         StringBuilder colRef = new StringBuilder();
         int col = column;
         do {
-            colRef.insert(0, (char) ('A' + (col % 26)));
+            colRef.insert(0, (char) ( 'A' + ( col % 26 ) ));
             col /= 26;
             col--;
         } while (col >= 0);
-        return colRef.toString() + (row + 1);
+        return colRef.toString() + ( row + 1 );
     }
 
     private void initializeStyles(XSSFWorkbook workbook) {

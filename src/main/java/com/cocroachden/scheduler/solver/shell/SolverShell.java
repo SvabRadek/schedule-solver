@@ -37,7 +37,7 @@ public class SolverShell {
 
     @ShellMethod("solve")
     public String solve() {
-        var filename = "Rozvrh.xlsx";
+        var filename = vocabulary.translateFromEn("Assignment") + ".xlsx";
         var folder = System.getProperty("user.dir");
         var file = new File(Path.of(folder + "/" + filename).toUri());
         if (!file.exists() || file.isDirectory()) {
@@ -69,18 +69,18 @@ public class SolverShell {
     @ShellMethod("generate")
     public void generate() {
         var scanner = new Scanner(System.in);
-        final var pathname = System.getProperty("user.dir") + "/" + vocabulary.translate("Schedule") + ".xlsx";
+        final var pathname = System.getProperty("user.dir") + "/" + vocabulary.translateFromEn("Assignment") + ".xlsx";
         var file = new File(pathname);
         if (file.exists() && file.isFile()) {
             if (!this.shouldOverwriteFile(pathname, scanner)) {
                 return;
             }
         }
-        System.out.println("Please enter start date in format D.M.YY");
+        System.out.println(vocabulary.translateFromEn("Please enter start date in format D.M.YY"));
         var startDate = scanner.next();
-        System.out.println("Please enter end date in format D.M.YY");
+        System.out.println(vocabulary.translateFromEn("Please enter end date in format D.M.YY"));
         var endDate = scanner.next();
-        System.out.println("Please enter number of employees");
+        System.out.println(vocabulary.translateFromEn("Please enter number of employees"));
         var numOfEmployees = scanner.nextInt();
         var formatter = DateTimeFormatter.ofPattern("d.M.yy");
         var parsedStartDate = LocalDate.parse(startDate, formatter);
@@ -91,24 +91,23 @@ public class SolverShell {
         schedule.setEndDate(parsedEndDate);
 
         IntStream.range(0, numOfEmployees)
-                .forEach(i -> schedule.getEmployees().add(new Employee(new EmployeeId(vocabulary.translate("Employee") + i), 10)));
+                .forEach(i -> schedule.getEmployees().add(new Employee(new EmployeeId(vocabulary.translateFromEn("Employee") + i), 10)));
         scheduleWriter.write(schedule, file);
-        System.out.println("Done!");
+        System.out.println(vocabulary.translateFromEn("Done!"));
     }
 
     private boolean shouldOverwriteFile(final String pathname, final Scanner scanner) {
-        System.out.println("File " + pathname + " already exists. Do you want to overwrite it? Yes/No");
-        var overwrite = scanner.next();
+        System.out.printf(vocabulary.translateFromEn("File %s already exists. Do you want to overwrite it? Yes/No"), pathname);
+        var overwrite = vocabulary.translateToEn(scanner.next());
         if (overwrite.equalsIgnoreCase("yes")) {
             return true;
         } else if (overwrite.equalsIgnoreCase("no")) {
-            System.out.println("Terminating generation.");
+            System.out.println(vocabulary.translateFromEn("Terminating generation."));
             return false;
         } else {
-            System.out.println("Please enter yes or no");
-            this.shouldOverwriteFile(pathname, scanner);
+            System.out.println(vocabulary.translateFromEn("Please enter yes or no"));
+            return this.shouldOverwriteFile(pathname, scanner);
         }
-        return false;
     }
 
     @ShellMethod("status")

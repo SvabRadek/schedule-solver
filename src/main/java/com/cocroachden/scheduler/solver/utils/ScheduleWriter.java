@@ -56,18 +56,22 @@ public class ScheduleWriter {
         var isBlank = schedule.getShiftAssignments().stream().noneMatch(sa -> sa.getEmployee() != null);
         var wb = new XSSFWorkbook();
         this.initializeStyles(wb);
-        var resultSheet = wb.createSheet(vocabulary.translate(isBlank ? ScheduleProperties.SCHEDULE_SHEET_NAME : ScheduleProperties.RESULT_WB_NAME));
+        var resultSheet = wb.createSheet(vocabulary.translateFromEn(isBlank ? ScheduleProperties.ASSIGNMENT_SHEET_NAME : ScheduleProperties.RESULT_WB_NAME));
         this.writeSettings(schedule, resultSheet);
         this.writeHeader(schedule, resultSheet);
         var lastRow = this.writeSchedule(schedule, resultSheet, isBlank);
         this.writeFooter(schedule, resultSheet, lastRow + 1);
-        resultSheet.createFreezePane(ScheduleProperties.HEADER_START.column() + 1, ScheduleProperties.HEADER_START.row() + 1);
+        resultSheet.createFreezePane(ScheduleProperties.HEADER_START.column() + 2, ScheduleProperties.HEADER_START.row() + 1);
         var lastCol = resultSheet.getRow(ScheduleProperties.HEADER_START.row()).getLastCellNum();
         for (int col = ScheduleProperties.HEADER_START.column(); col <= lastCol; col++) {
             resultSheet.autoSizeColumn(col);
+            if (col == 0) {
+                var width = resultSheet.getColumnWidth(col);
+                resultSheet.setColumnWidth(col, width + (5 * 256));
+            }
         }
         if (!summary.isBlank()) {
-            var sheet = wb.createSheet(vocabulary.translate("Summary"));
+            var sheet = wb.createSheet(vocabulary.translateFromEn("Summary"));
             var cell = sheet.createRow(0).createCell(0);
             cell.setCellValue(summary);
             var style = wb.createCellStyle();
@@ -88,7 +92,7 @@ public class ScheduleWriter {
         var startDateRow = sheet.createRow(ScheduleProperties.START_DATE_VALUE_CELL.row());
         var startDateHeader = startDateRow.createCell(ScheduleProperties.START_DATE_VALUE_CELL.column() - 1);
         var startDateValue = startDateRow.createCell(ScheduleProperties.START_DATE_VALUE_CELL.column());
-        startDateHeader.setCellValue(vocabulary.translate("Start"));
+        startDateHeader.setCellValue(vocabulary.translateFromEn("Start"));
         startDateValue.setCellValue(schedule.getStartDate().format(ScheduleProperties.SCHEDULE_DATE_FORMAT));
         startDateHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
         startDateValue.setCellStyle(DEFAULT_STYLE);
@@ -96,7 +100,7 @@ public class ScheduleWriter {
         var endDateRow = sheet.createRow(ScheduleProperties.END_DATE_VALUE_CELL.row());
         var endDateHeader = endDateRow.createCell(ScheduleProperties.END_DATE_VALUE_CELL.column() - 1);
         var endDateValue = endDateRow.createCell(ScheduleProperties.END_DATE_VALUE_CELL.column());
-        endDateHeader.setCellValue(vocabulary.translate("End"));
+        endDateHeader.setCellValue(vocabulary.translateFromEn("End"));
         endDateValue.setCellValue(schedule.getEndDate().format(ScheduleProperties.SCHEDULE_DATE_FORMAT));
         endDateHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
         endDateValue.setCellStyle(DEFAULT_STYLE);
@@ -104,7 +108,7 @@ public class ScheduleWriter {
         var peopleOnDayShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row());
         var peopleOnDayShiftRowHeader = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column() - 1);
         var peopleOnDayShiftRowValue = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column());
-        peopleOnDayShiftRowHeader.setCellValue(vocabulary.translate("Required employee count on day shift"));
+        peopleOnDayShiftRowHeader.setCellValue(vocabulary.translateFromEn("Required employee count on day shift"));
         peopleOnDayShiftRowValue.setCellValue(3);
         peopleOnDayShiftRowHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
         peopleOnDayShiftRowValue.setCellStyle(DEFAULT_STYLE);
@@ -112,7 +116,7 @@ public class ScheduleWriter {
         var peopleOnNightShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row());
         var peopleOnNightShiftHeader = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column() - 1);
         var peopleOnNightShiftValue = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column());
-        peopleOnNightShiftHeader.setCellValue(vocabulary.translate("Required employee count on night shift"));
+        peopleOnNightShiftHeader.setCellValue(vocabulary.translateFromEn("Required employee count on night shift"));
         peopleOnNightShiftValue.setCellValue(3);
         peopleOnNightShiftHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
         peopleOnNightShiftValue.setCellStyle(DEFAULT_STYLE);
@@ -122,10 +126,10 @@ public class ScheduleWriter {
         var currentColumn = new AtomicInteger(ScheduleProperties.HEADER_START.column());
         var headerRow = sheet.createRow(ScheduleProperties.HEADER_START.row());
         var nameCell = headerRow.createCell(currentColumn.getAndIncrement());
-        nameCell.setCellValue(vocabulary.translate("Name"));
+        nameCell.setCellValue(vocabulary.translateFromEn("Name"));
         nameCell.setCellStyle(DEFAULT_STYLE);
         var shiftCountCell = headerRow.createCell(currentColumn.getAndIncrement());
-        shiftCountCell.setCellValue(vocabulary.translate("Minimum shift count"));
+        shiftCountCell.setCellValue(vocabulary.translateFromEn("Minimum shift count"));
         shiftCountCell.setCellStyle(DEFAULT_STYLE);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
@@ -140,7 +144,7 @@ public class ScheduleWriter {
         Stream.of("Count of D", "Count of N", "Count of V", "Total")
               .forEach(content -> {
                   var cell = headerRow.createCell(currentColumn.getAndIncrement());
-                  cell.setCellValue(vocabulary.translate(content));
+                  cell.setCellValue(vocabulary.translateFromEn(content));
                   cell.setCellStyle(DEFAULT_STYLE);
               });
     }
@@ -252,7 +256,7 @@ public class ScheduleWriter {
         var currentRow = new AtomicInteger(startRow);
         Stream.of("Count of D", "Count of N", "Count of V", "Total").forEach(content -> {
             var cell = sheet.createRow(currentRow.getAndIncrement()).createCell(ScheduleProperties.SCHEDULE_TABLE_START.column());
-            cell.setCellValue(vocabulary.translate(content));
+            cell.setCellValue(vocabulary.translateFromEn(content));
             cell.setCellStyle(DEFAULT_STYLE);
         });
         var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column() + 2);

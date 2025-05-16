@@ -6,7 +6,8 @@ public class ScheduleProperties {
 
     public static final DateTimeFormatter SCHEDULE_DATE_FORMAT = DateTimeFormatter.ofPattern("d.M.yy");
 
-    public static final String SCHEDULE_SHEET_NAME = "Schedule";
+    public static final String ASSIGNMENT_SHEET_NAME = "Assignment";
+    public static final String ASSIGNMENT_WB_NAME = "Assignment";
     public static final String RESULT_WB_NAME = "Result";
 
     public static final Coordinates START_DATE_VALUE_CELL = new Coordinates(1, 1);

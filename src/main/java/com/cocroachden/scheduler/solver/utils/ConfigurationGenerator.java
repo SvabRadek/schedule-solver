@@ -26,17 +26,17 @@ public class ConfigurationGenerator {
     private final Vocabulary vocabulary;
 
     public String getInputFileName() {
-        return vocabulary.translate("Schedule") + ".xlsx";
+        return vocabulary.translateFromEn("Schedule") + ".xlsx";
     }
 
     public void generate(LocalDate startDate, LocalDate endDate) {
         var currentDir = System.getProperty("user.dir");
         try (var wb = new XSSFWorkbook()) {
-            var scheduleSheet = wb.createSheet(vocabulary.translate("Schedule"));
+            var scheduleSheet = wb.createSheet(vocabulary.translateFromEn("Schedule"));
             this.createScheduleSheet(scheduleSheet, startDate, endDate);
-            var configurationSheet = wb.createSheet(vocabulary.translate("Configuration"));
+            var configurationSheet = wb.createSheet(vocabulary.translateFromEn("Configuration"));
             this.createConfigurationSheet(configurationSheet);
-            var file = new File(currentDir + "/" + vocabulary.translate("Schedule") + ".xlsx");
+            var file = new File(currentDir + "/" + vocabulary.translateFromEn("Schedule") + ".xlsx");
             var outputStream = new FileOutputStream(file);
             wb.write(outputStream);
         } catch (IOException e) {
@@ -49,13 +49,13 @@ public class ConfigurationGenerator {
         var secondRow = sheet.createRow(1);
         var thirdRow = sheet.createRow(2);
         var fourthRow = sheet.createRow(3);
-        firstRow.createCell(0).setCellValue(vocabulary.translate("Required employee count on day shift"));
+        firstRow.createCell(0).setCellValue(vocabulary.translateFromEn("Required employee count on day shift"));
         firstRow.createCell(1).setCellValue(4);
-        secondRow.createCell(0).setCellValue(vocabulary.translate("Required employee count on night shift"));
+        secondRow.createCell(0).setCellValue(vocabulary.translateFromEn("Required employee count on night shift"));
         secondRow.createCell(1).setCellValue(3);
-        thirdRow.createCell(0).setCellValue(vocabulary.translate("Max shift count in a row"));
+        thirdRow.createCell(0).setCellValue(vocabulary.translateFromEn("Max shift count in a row"));
         thirdRow.createCell(1).setCellValue(3);
-        fourthRow.createCell(0).setCellValue(vocabulary.translate("Max shift count in a week"));
+        fourthRow.createCell(0).setCellValue(vocabulary.translateFromEn("Max shift count in a week"));
         fourthRow.createCell(1).setCellValue(5);
     }
 
@@ -64,24 +64,24 @@ public class ConfigurationGenerator {
         var secondRow = sheet.createRow(1);
         var headerRow = sheet.createRow(3);
 
-        firstRow.createCell(0).setCellValue(vocabulary.translate("Start"));
+        firstRow.createCell(0).setCellValue(vocabulary.translateFromEn("Start"));
         firstRow.createCell(1).setCellValue(startDate.format(WB_DATE_FORMATTER));
-        firstRow.createCell(5).setCellValue(vocabulary.translate("Schedule Instructions"));
-        secondRow.createCell(0).setCellValue(vocabulary.translate("End"));
+        firstRow.createCell(5).setCellValue(vocabulary.translateFromEn("Schedule Instructions"));
+        secondRow.createCell(0).setCellValue(vocabulary.translateFromEn("End"));
         secondRow.createCell(1).setCellValue(endDate.format(WB_DATE_FORMATTER));
 
-        headerRow.createCell(0).setCellValue(vocabulary.translate("Name"));
-        headerRow.createCell(1).setCellValue(vocabulary.translate("Ideal shift count"));
+        headerRow.createCell(0).setCellValue(vocabulary.translateFromEn("Name"));
+        headerRow.createCell(1).setCellValue(vocabulary.translateFromEn("Ideal shift count"));
         startDate.datesUntil(endDate.plusDays(1)).forEach(date -> {
             var index = (int) ChronoUnit.DAYS.between(startDate, date);
             var headerDayCell = headerRow.createCell(index + 2);
-            headerDayCell.setCellValue(date.getDayOfMonth() + " " + vocabulary.translate(StringUtils.capitalize(date.getDayOfWeek().name())).substring(0, 2));
+            headerDayCell.setCellValue(date.getDayOfMonth() + " " + vocabulary.translateFromEn(StringUtils.capitalize(date.getDayOfWeek().name())).substring(0, 2));
             if (date.getDayOfWeek().getValue() > 5) {
                 headerDayCell.getCellStyle().setFillBackgroundColor(IndexedColors.BRIGHT_GREEN.index);
             }
         });
         var currentRow = new AtomicInteger(4);
-        Stream.of(vocabulary.translate("Employee1"), vocabulary.translate("Employee2"))
+        Stream.of(vocabulary.translateFromEn("Employee1"), vocabulary.translateFromEn("Employee2"))
               .forEach(employee -> {
                   var row = sheet.createRow(currentRow.getAndIncrement());
                   row.createCell(0).setCellValue(employee);

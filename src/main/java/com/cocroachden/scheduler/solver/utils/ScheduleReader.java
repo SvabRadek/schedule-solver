@@ -2,6 +2,7 @@ package com.cocroachden.scheduler.solver.utils;
 
 import com.cocroachden.scheduler.domain.EmployeeId;
 import com.cocroachden.scheduler.domain.ShiftAssignmentId;
+import com.cocroachden.scheduler.domain.Vocabulary;
 import com.cocroachden.scheduler.solver.*;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
@@ -18,15 +19,21 @@ import java.util.LinkedHashSet;
 @Service
 public class ScheduleReader {
 
+    private final Vocabulary vocabulary;
+
+    public ScheduleReader(final Vocabulary vocabulary) {
+        this.vocabulary = vocabulary;
+    }
+
     public EmployeeSchedule read(File inputFile) {
         try (
                 FileInputStream fis = new FileInputStream(inputFile);
                 var workbook = new XSSFWorkbook(fis)
         ) {
             var schedule = new EmployeeSchedule();
-            var scheduleSheet = workbook.getSheet("Rozvrh");
+            var scheduleSheet = workbook.getSheet(vocabulary.translateFromEn(ScheduleProperties.ASSIGNMENT_SHEET_NAME));
             if (scheduleSheet == null) {
-                throw ScheduleReaderException.becauseCouldNotFindSheet("Rozvrh");
+                throw ScheduleReaderException.becauseCouldNotFindSheet(vocabulary.translateFromEn(ScheduleProperties.ASSIGNMENT_SHEET_NAME));
             }
             this.readSchedule(scheduleSheet, schedule);
             this.createShiftAssignments(scheduleSheet, schedule);

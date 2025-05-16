@@ -21,6 +21,13 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Negative", "Zapor");
         VOCABULARY.put("Desirable", "Chteny");
         VOCABULARY.put("Result", "Vysledek");
+        VOCABULARY.put("Assignment", "Zadani");
+        VOCABULARY.put("Please enter start date in format D.M.YY", "Zadejte pocatecni datum ve formatu D.M.YY");
+        VOCABULARY.put("Please enter end date in format D.M.YY", "Zadejte konecne datum ve formatu D.M.YY");
+        VOCABULARY.put("Please enter number of employees", "Zadejte pocet zamestnancu v rozvrhu");
+        VOCABULARY.put("File %s already exists. Do you want to overwrite it? Yes/No", "Soubor %s uz existuje. Chcete ho prepsat? Ano/Ne");
+        VOCABULARY.put("Done!", "Hotovo!");
+        VOCABULARY.put("Please enter yes or no", "Prosim zadej 'ano' nebo 'ne'");
         VOCABULARY.put("Undesirable", "Nechteny");
         VOCABULARY.put("Name", "Jmeno");
         VOCABULARY.put("Ideal shift count", "Idealni pocet smen");
@@ -28,6 +35,10 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("D", "D");
         VOCABULARY.put("N", "N");
         VOCABULARY.put("O", "V");
+        VOCABULARY.put("Yes", "Ano");
+        VOCABULARY.put("yes", "ano");
+        VOCABULARY.put("No", "Ne");
+        VOCABULARY.put("ne", "ne");
         VOCABULARY.put("Employee", "Zamestnanec");
         VOCABULARY.put("Employee1", "Zamestnanec1");
         VOCABULARY.put("Employee2", "Zamestnanec2");
@@ -70,11 +81,21 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Count of V", "Pocet V");
         VOCABULARY.put("Total", "Celkem");
         VOCABULARY.put("Summary", "Shrnuti");
+        VOCABULARY.put("Terminating generation.", "Generovani preruseno.");
     }
 
     @Override
-    public String translate(String word) {
+    public String translateFromEn(String word) {
         return VOCABULARY.getOrDefault(word, "--translation not found--");
+    }
+
+    @Override
+    public String translateToEn(final String word) {
+        return VOCABULARY.entrySet().stream()
+                         .filter(e -> e.getValue().equalsIgnoreCase(word))
+                         .map(Map.Entry::getKey)
+                         .findAny()
+                         .orElse("--translation not found--");
     }
 
     @Override

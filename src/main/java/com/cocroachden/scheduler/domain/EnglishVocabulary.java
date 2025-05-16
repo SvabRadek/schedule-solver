@@ -35,8 +35,13 @@ public final class EnglishVocabulary implements Vocabulary {
     }
 
     @Override
-    public String translate(String word) {
+    public String translateFromEn(String word) {
         return VOCABULARY.getOrDefault(word, word);
+    }
+
+    @Override
+    public String translateToEn(final String word) {
+        return word;
     }
 
     @Override

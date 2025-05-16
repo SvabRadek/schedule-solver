@@ -1,6 +1,7 @@
 package com.cocroachden.scheduler.domain;
 
 public sealed interface Vocabulary permits CzechVocabulary, EnglishVocabulary {
-    String translate(String word);
+    String translateFromEn(String word);
+    String translateToEn(String word);
     Boolean supports(String language);
 }

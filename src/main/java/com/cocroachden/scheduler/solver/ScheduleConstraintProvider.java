@@ -25,7 +25,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                 penalizeTooManyShiftCountPerWeek(factory),
                 penalizeAssignedWhenUndesirable(factory),
                 penalizeSingleDayOff(factory),
-                penalizeDeviationFromIdealShiftCount(factory),
+                penalizeDeviationFromMinimumShiftCount(factory),
                 penalizeUnequalWeekendDistribution(factory),
                 penalizeNightAndDayShiftDisbalance(factory),
                 rewardAssignedWhenDesirable(factory),
@@ -52,7 +52,7 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                         Joiners.equal(Availability::date, ShiftAssignment::getDate),
                                         Joiners.equal(Availability::employee, ShiftAssignment::getEmployee),
                                         Joiners.equal(Availability::shiftType, ShiftAssignment::getShiftType)
-                                ).penalize(HardSoftScore.ONE_HARD)
+                                ).penalize(HardSoftScore.ofHard(50))
                                 .asConstraint("No shifts when unavailable");
     }
 
@@ -131,8 +131,8 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
 
     Constraint penalizeLessShiftsThanMinimum(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
-                                .filter(e -> e.getAssignmentInfo().getTotalCount() < e.getIdealShiftCount())
-                                .penalize(HardSoftScore.ONE_HARD)
+                                .filter(e -> e.getAssignmentInfo().getTotalCount() < e.getMinimumShiftCount())
+                                .penalize(HardSoftScore.ONE_HARD, employee -> employee.getMinimumShiftCount() - employee.getAssignmentInfo().getTotalCount())
                                 .asConstraint("No less assignments than minimum");
     }
 
@@ -159,14 +159,15 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                 .asConstraint("Max shift count per week");
     }
 
-    Constraint penalizeDeviationFromIdealShiftCount(ConstraintFactory constraintFactory) {
+    Constraint penalizeDeviationFromMinimumShiftCount(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
+                                .filter(e -> e.getMinimumShiftCount() - e.getAssignmentInfo().getTotalCount() != 0)
                                 .penalize(
                                         HardSoftScore.ONE_SOFT,
-                                        (employee) -> (int) Math.round(Math.pow(
-                                                employee.getIdealShiftCount() - employee.getAssignmentInfo().getTotalCount(),
-                                                2
-                                        ))
+                                        (employee) -> {
+                                            var deviation = employee.getMinimumShiftCount() - employee.getAssignmentInfo().getTotalCount();
+                                            return deviation * deviation;
+                                        }
                                 ).asConstraint("Penalize deviation from ideal shift count");
     }
 
@@ -180,24 +181,22 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
                                             return Math.abs(days - nights);
                                         }
                                 ).filter((employee, difference) -> difference > 0)
-                                .penalize(HardSoftScore.ONE_SOFT, (employee, difference) -> (int) Math.round(Math.pow(difference, 2)))
+                                .penalize(HardSoftScore.ONE_SOFT, (employee, difference) -> (int) Math.pow(difference, 2))
                                 .asConstraint("Penalize unequal shift type distribution");
     }
 
-    //TODO make sure this works as intended
     Constraint penalizeUnequalWeekendDistribution(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
-                                .groupBy(employee -> employee, ConstraintCollectors.average(e -> e.getAssignmentInfo().getWeekendShifts()))
-                                .map(
-                                        (employee, average) -> employee,
-                                        (employee, average) -> Math.abs(Math.round(employee.getAssignmentInfo().getWeekendShifts() - average))
-                                )
-                                .filter((employee, deviation) -> deviation > 0)
+                                .groupBy(ConstraintCollectors.average(e -> e.getAssignmentInfo().getWeekendShifts()))
+                                .join(Employee.class)
+                                .filter((average, employee) -> employee.getAssignmentInfo().getWeekendShifts() - (int) Math.round(average) != 0)
                                 .penalize(
                                         HardSoftScore.ONE_SOFT,
-                                        (employee, deviation) -> (int) Math.round(Math.pow(deviation * 2, 2))
-                                )
-                                .asConstraint("Penalize unequal weekend distribution");
+                                        (average, employee) -> {
+                                            var deviation = (int) Math.abs(average - employee.getAssignmentInfo().getWeekendShifts());
+                                            return (int) Math.pow(deviation, 4);
+                                        }
+                                ).asConstraint("Penalize unequal weekend distribution");
     }
 }
 

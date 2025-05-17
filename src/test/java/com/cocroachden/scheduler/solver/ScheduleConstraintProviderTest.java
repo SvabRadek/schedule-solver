@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
 import java.time.LocalDate;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 @SpringBootTest(
@@ -170,7 +169,7 @@ class ScheduleConstraintProviderTest {
                 .setDate(LocalDate.now())
                 .setEmployee(EXAMPLE_EMPLOYEE);
         EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift)));
-        constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromIdealShiftCount)
+        constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromMinimumShiftCount)
                           .given(firstShift, EXAMPLE_EMPLOYEE)
                           .penalizesBy(81);
     }
@@ -178,7 +177,7 @@ class ScheduleConstraintProviderTest {
     @Test
     public void itCanHandleDeviationFromIdealShiftCountWhenNoShiftsAreAssigned() {
         EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of()));
-        constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromIdealShiftCount)
+        constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeDeviationFromMinimumShiftCount)
                           .given(EXAMPLE_EMPLOYEE)
                           .penalizesBy(100);
     }

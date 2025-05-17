@@ -18,7 +18,7 @@ import java.util.Objects;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public final class Employee {
     private EmployeeId employeeId;
-    private Integer idealShiftCount;
+    private Integer minimumShiftCount;
     @InverseRelationShadowVariable(sourceVariableName = "employee")
     private final List<ShiftAssignment> shiftAssignments = new ArrayList<>();
     @Setter
@@ -28,9 +28,9 @@ public final class Employee {
     )
     private EmployeeShiftAssignmentInfo assignmentInfo = new EmployeeShiftAssignmentInfo(0, 0, 0);
 
-    public Employee(final EmployeeId employeeId, final Integer idealShiftCount) {
+    public Employee(final EmployeeId employeeId, final Integer minimumShiftCount) {
         this.employeeId = employeeId;
-        this.idealShiftCount = idealShiftCount;
+        this.minimumShiftCount = minimumShiftCount;
     }
 
     @Override

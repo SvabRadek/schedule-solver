@@ -149,6 +149,7 @@ public class ScheduleWriter {
               });
     }
 
+    //TODO add stats for weekend shift count
     private Integer writeSchedule(EmployeeSchedule schedule, XSSFSheet sheet, final Boolean isBlank) {
         var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column());
         var currentRow = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.row());
@@ -159,11 +160,11 @@ public class ScheduleWriter {
             nameCell.setCellValue(employee.getEmployeeId().id());
             nameCell.setCellStyle(DEFAULT_SCHEDULE_STYLE);
             var assignmentsCell = employeeRow.createCell(currentColumn.getAndIncrement());
-            assignmentsCell.setCellValue(employee.getIdealShiftCount());
+            assignmentsCell.setCellValue(employee.getMinimumShiftCount());
             if (isBlank) {
                 assignmentsCell.setCellStyle(DEFAULT_STYLE);
             } else {
-                if (employee.getIdealShiftCount() <= employee.getShiftAssignments().size()) {
+                if (employee.getMinimumShiftCount() <= employee.getShiftAssignments().size()) {
                     assignmentsCell.setCellStyle(CORRECT_STYLE);
                 } else {
                     assignmentsCell.setCellStyle(FAILED_STYLE);

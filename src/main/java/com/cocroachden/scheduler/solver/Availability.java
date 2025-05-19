@@ -2,9 +2,7 @@ package com.cocroachden.scheduler.solver;
 
 import ai.timefold.solver.core.api.domain.lookup.PlanningId;
 import com.cocroachden.scheduler.domain.AvailabilityId;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
 
 import java.time.LocalDate;
 
@@ -29,6 +27,10 @@ public record Availability(
                 shiftType,
                 type
         );
+    }
+
+    public String getSymbol() {
+        return type.getSymbol() + shiftType.getSymbol();
     }
 
 }

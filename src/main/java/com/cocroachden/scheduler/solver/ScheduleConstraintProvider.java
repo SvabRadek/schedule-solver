@@ -132,8 +132,13 @@ public class ScheduleConstraintProvider implements ConstraintProvider {
     Constraint penalizeLessShiftsThanMinimum(ConstraintFactory constraintFactory) {
         return constraintFactory.forEach(Employee.class)
                                 .filter(e -> e.getAssignmentInfo().getTotalCount() < e.getMinimumShiftCount())
-                                .penalize(HardSoftScore.ONE_HARD, employee -> employee.getMinimumShiftCount() - employee.getAssignmentInfo().getTotalCount())
-                                .asConstraint("No less assignments than minimum");
+                                .penalize(HardSoftScore.ONE_HARD, employee -> {
+                                    var deviation = employee.getMinimumShiftCount() - employee.getAssignmentInfo().getTotalCount();
+                                    if (deviation == 1) {
+                                        deviation++;
+                                    }
+                                    return deviation * deviation;
+                                }).asConstraint("No less assignments than minimum");
     }
 
     Constraint rewardFullWorkWeekends(ConstraintFactory constraintFactory) {

@@ -21,10 +21,13 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.DayOfWeek;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
+
+import static com.cocroachden.scheduler.solver.utils.ExcelUtils.toA1;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +36,7 @@ public class ScheduleWriter {
     public static final Map<DayOfWeek, String> WEEK_DAY_TRANSLATIONS = new HashMap<>();
     private final Vocabulary vocabulary;
     private XSSFCellStyle WEEKEND_STYLE;
+    private XSSFCellStyle WEEKEND_SCHEDULE_STYLE;
     private XSSFCellStyle DEFAULT_STYLE;
     private XSSFCellStyle DEFAULT_SCHEDULE_STYLE;
     private XSSFCellStyle CORRECT_STYLE;
@@ -67,7 +71,7 @@ public class ScheduleWriter {
             resultSheet.autoSizeColumn(col);
             if (col == 0) {
                 var width = resultSheet.getColumnWidth(col);
-                resultSheet.setColumnWidth(col, width + (5 * 256));
+                resultSheet.setColumnWidth(col, width + ( 5 * 256 ));
             }
         }
         if (!summary.isBlank()) {
@@ -141,7 +145,7 @@ public class ScheduleWriter {
                         cell.setCellStyle(WEEKEND_STYLE);
                     }
                 });
-        Stream.of("Count of D", "Count of N", "Count of V", "Total")
+        Stream.of("Count of D", "Count of N", "Count of V", "Count of W", "Total")
               .forEach(content -> {
                   var cell = headerRow.createCell(currentColumn.getAndIncrement());
                   cell.setCellValue(vocabulary.translateFromEn(content));
@@ -149,7 +153,7 @@ public class ScheduleWriter {
               });
     }
 
-    //TODO add stats for weekend shift count
+    //TODO add comments with original requests
     private Integer writeSchedule(EmployeeSchedule schedule, XSSFSheet sheet, final Boolean isBlank) {
         var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column());
         var currentRow = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.row());
@@ -170,6 +174,7 @@ public class ScheduleWriter {
                     assignmentsCell.setCellStyle(FAILED_STYLE);
                 }
             }
+            var weekendCells = new ArrayList<Coordinates>();
             schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                     .forEach(date -> {
                         var availabilities = schedule.getAvailabilities().stream()
@@ -184,9 +189,11 @@ public class ScheduleWriter {
                                 .orElse("");
                         var cell = employeeRow.createCell(currentColumn.getAndIncrement());
                         cell.setCellValue(assignmentSymbol);
+                        final var currentCellCoords = Coordinates.of(employeeRow.getRowNum(), cell.getColumnIndex());
                         if (availabilities.isEmpty()) {
                             cell.setCellStyle(DEFAULT_SCHEDULE_STYLE);
                         } else if (availabilities.size() == 2) {
+                            ExcelUtils.addComment(currentCellCoords, vocabulary.translateFromEn("Request") + ": V", sheet);
                             if (assignment.isEmpty()) {
                                 cell.setCellStyle(CORRECT_STYLE);
                             } else {
@@ -194,11 +201,15 @@ public class ScheduleWriter {
                             }
                         } else if (availabilities.size() == 1) {
                             var availability = availabilities.get(0);
+                            ExcelUtils.addComment(currentCellCoords, vocabulary.translateFromEn("Request") + ": " + availability.getSymbol(), sheet);
                             if (this.isAssignmentCorrect(assignment.map(ShiftAssignment::getShiftType).orElse(null), availability)) {
                                 cell.setCellStyle(CORRECT_STYLE);
                             } else {
                                 cell.setCellStyle(FAILED_STYLE);
                             }
+                        }
+                        if (date.getDayOfWeek().getValue() > 5) {
+                            weekendCells.add(currentCellCoords);
                         }
                     });
 
@@ -217,6 +228,9 @@ public class ScheduleWriter {
                     toA1(formulaRow, formulaFirstColumn),
                     toA1(formulaRow, formulaLastColumn)
             );
+            var countWFormula = "COUNTA(%s)".formatted(
+                    String.join(", ", weekendCells.stream().map(ExcelUtils::toA1).toList())
+            );
             var totalFormula = "COUNTA(%s:%s)".formatted(
                     toA1(formulaRow, formulaFirstColumn),
                     toA1(formulaRow, formulaLastColumn)
@@ -226,6 +240,7 @@ public class ScheduleWriter {
                     countDFormula,
                     countNFormula,
                     countVFormula,
+                    countWFormula,
                     totalFormula
             ).forEach(formula -> {
                 var cell = employeeRow.createCell(currentColumn.getAndIncrement());
@@ -294,17 +309,6 @@ public class ScheduleWriter {
                           });
                     currentColumn.getAndIncrement();
                 });
-    }
-
-    private String toA1(final int row, final int column) {
-        StringBuilder colRef = new StringBuilder();
-        int col = column;
-        do {
-            colRef.insert(0, (char) ( 'A' + ( col % 26 ) ));
-            col /= 26;
-            col--;
-        } while (col >= 0);
-        return colRef.toString() + ( row + 1 );
     }
 
     private void initializeStyles(XSSFWorkbook workbook) {

@@ -79,8 +79,10 @@ public final class CzechVocabulary implements Vocabulary {
         VOCABULARY.put("Count of D", "Pocet D");
         VOCABULARY.put("Count of N", "Pocet N");
         VOCABULARY.put("Count of V", "Pocet V");
+        VOCABULARY.put("Count of W", "Pocet Vknd");
         VOCABULARY.put("Total", "Celkem");
         VOCABULARY.put("Summary", "Shrnuti");
+        VOCABULARY.put("Request", "Pozadavek");
         VOCABULARY.put("Terminating generation.", "Generovani preruseno.");
     }
 

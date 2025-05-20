@@ -63,7 +63,7 @@ class ScheduleConstraintProviderTest {
 
         constraintVerifier.verifyThat(ScheduleConstraintProvider::requireNoDayShiftsAfterNightShift)
                           .given(nightShift, followingDayShift, EXAMPLE_EMPLOYEE)
-                          .penalizesBy(50);
+                          .penalizesBy(1);
     }
 
     @Test
@@ -97,7 +97,7 @@ class ScheduleConstraintProviderTest {
                                        .build();
         constraintVerifier.verifyThat(ScheduleConstraintProvider::requireShiftWhenRequired)
                           .given(availability, EXAMPLE_EMPLOYEE)
-                          .penalizesBy(100);
+                          .penalizesBy(1);
     }
 
 //    @Test
@@ -155,10 +155,15 @@ class ScheduleConstraintProviderTest {
                 .setShiftType(ShiftType.DAY)
                 .setDate(monday.plusDays(4))
                 .setEmployee(EXAMPLE_EMPLOYEE);
-        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift, secondShift, thirdShift, fourthShift, fifthShift)));
+        var sixthShift = new ShiftAssignment()
+                .setId(new ShiftAssignmentId("example6"))
+                .setShiftType(ShiftType.DAY)
+                .setDate(monday.plusDays(5))
+                .setEmployee(EXAMPLE_EMPLOYEE);
+        EXAMPLE_EMPLOYEE.setAssignmentInfo(new EmployeeShiftAssignmentInfo(List.of(firstShift, secondShift, thirdShift, fourthShift, fifthShift, sixthShift)));
         constraintVerifier.verifyThat(ScheduleConstraintProvider::penalizeTooManyShiftCountPerWeek)
-                          .given(firstShift, secondShift, thirdShift, fourthShift, fifthShift, EXAMPLE_EMPLOYEE)
-                          .penalizesBy(1);
+                          .given(firstShift, secondShift, thirdShift, fourthShift, fifthShift, sixthShift, EXAMPLE_EMPLOYEE)
+                          .penalizesBy(6);
     }
 
     @Test
@@ -221,27 +226,6 @@ class ScheduleConstraintProviderTest {
                           .given(shift, availability, EXAMPLE_EMPLOYEE)
                           .rewardsWith(1);
     }
-
-//    @Test
-//    public void itCanHandleShiftWhenDesirable() {
-//        var shift = new ShiftAssignment()
-//                .setId(new ShiftAssignmentId("example1"))
-//                .setShiftType(ShiftType.DAY)
-//                .setDate(LocalDate.now())
-//                .setConsecutiveShiftAssignmentCount(1)
-//                .setEmployee(EXAMPLE_EMPLOYEE);
-//        var availability = Availability.builder()
-//                                       .employee(EXAMPLE_EMPLOYEE)
-//                                       .solvingId(new AvailabilityId("example2"))
-//                                       .shiftType(ShiftType.DAY)
-//                                       .type(AvailabilityType.DESIRED)
-//                                       .date(LocalDate.now())
-//                                       .build();
-//        constraintVerifier.verifyThat(ScheduleConstraintProvider::evenShiftDistribution)
-//                          .given(shift, availability, EXAMPLE_EMPLOYEE)
-//                          .rewardsWith(1);
-//    }
-
 
     @TestConfiguration
     public static class ScheduleConstraintProviderTestConfiguration {

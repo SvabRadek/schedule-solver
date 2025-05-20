@@ -100,33 +100,6 @@ class ScheduleConstraintProviderTest {
                           .penalizesBy(1);
     }
 
-//    @Test
-//    public void itCanHandleNoMoreThanXShiftsInARow() {
-//        var firstShift = new ShiftAssignment()
-//                .setId(new ShiftAssignmentId("example1"))
-//                .setShiftType(ShiftType.DAY)
-//                .setDate(LocalDate.now())
-//                .setEmployee(EXAMPLE_EMPLOYEE);
-//        var secondShift = new ShiftAssignment()
-//                .setId(new ShiftAssignmentId("example2"))
-//                .setShiftType(ShiftType.DAY)
-//                .setDate(LocalDate.now().plusDays(1))
-//                .setEmployee(EXAMPLE_EMPLOYEE);
-//        var thirdShift = new ShiftAssignment()
-//                .setId(new ShiftAssignmentId("example3"))
-//                .setShiftType(ShiftType.DAY)
-//                .setDate(LocalDate.now().plusDays(2))
-//                .setEmployee(EXAMPLE_EMPLOYEE);
-//        var fourthShift = new ShiftAssignment()
-//                .setId(new ShiftAssignmentId("example4"))
-//                .setShiftType(ShiftType.DAY)
-//                .setDate(LocalDate.now().plusDays(3))
-//                .setEmployee(EXAMPLE_EMPLOYEE);
-//        constraintVerifier.verifyThat(ScheduleConstraintProvider::requireShiftCountInARowLimit)
-//                          .given(firstShift, secondShift, thirdShift, fourthShift, EXAMPLE_EMPLOYEE)
-//                          .penalizesBy(4);
-//    }
-
     @Test
     public void itCanHandleMaxShiftCountPerWeek() {
         var monday = LocalDate.of(2025, 4, 21);

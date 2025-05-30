@@ -40,6 +40,7 @@ public class ScheduleWriter {
     private XSSFCellStyle DEFAULT_STYLE;
     private XSSFCellStyle DEFAULT_SCHEDULE_STYLE;
     private XSSFCellStyle CORRECT_STYLE;
+    private XSSFCellStyle CORRECT_VACATION_STYLE;
     private XSSFCellStyle FAILED_STYLE;
 
     static {
@@ -198,7 +199,7 @@ public class ScheduleWriter {
                         } else if (availabilities.size() == 2) {
                             ExcelUtils.addComment(currentCellCoords, vocabulary.translateFromEn("Request") + ": V", sheet);
                             if (assignment.isEmpty()) {
-                                cell.setCellStyle(CORRECT_STYLE);
+                                cell.setCellStyle(CORRECT_VACATION_STYLE);
                             } else {
                                 cell.setCellStyle(FAILED_STYLE);
                             }
@@ -331,6 +332,10 @@ public class ScheduleWriter {
         CORRECT_STYLE = DEFAULT_SCHEDULE_STYLE.copy();
         CORRECT_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         CORRECT_STYLE.setFillForegroundColor(IndexedColors.GREEN.getIndex());
+
+        CORRECT_VACATION_STYLE = DEFAULT_SCHEDULE_STYLE.copy();
+        CORRECT_VACATION_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        CORRECT_VACATION_STYLE.setFillForegroundColor(IndexedColors.BLUE1.getIndex());
 
         FAILED_STYLE = DEFAULT_SCHEDULE_STYLE.copy();
         FAILED_STYLE.setFillPattern(FillPatternType.SOLID_FOREGROUND);

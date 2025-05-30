@@ -111,19 +111,13 @@ public class ScheduleWriter {
 
         var peopleOnDayShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row());
         var peopleOnDayShiftRowHeader = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column() - 1);
-        var peopleOnDayShiftRowValue = peopleOnDayShiftRow.createCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column());
         peopleOnDayShiftRowHeader.setCellValue(vocabulary.translateFromEn("Required employee count on day shift"));
-        peopleOnDayShiftRowValue.setCellValue(3);
         peopleOnDayShiftRowHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
-        peopleOnDayShiftRowValue.setCellStyle(DEFAULT_STYLE);
 
         var peopleOnNightShiftRow = sheet.createRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row());
         var peopleOnNightShiftHeader = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column() - 1);
-        var peopleOnNightShiftValue = peopleOnNightShiftRow.createCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column());
         peopleOnNightShiftHeader.setCellValue(vocabulary.translateFromEn("Required employee count on night shift"));
-        peopleOnNightShiftValue.setCellValue(3);
         peopleOnNightShiftHeader.setCellStyle(DEFAULT_SCHEDULE_STYLE);
-        peopleOnNightShiftValue.setCellStyle(DEFAULT_STYLE);
     }
 
     private void writeHeader(EmployeeSchedule schedule, XSSFSheet sheet) {
@@ -137,13 +131,22 @@ public class ScheduleWriter {
         shiftCountCell.setCellStyle(DEFAULT_STYLE);
         schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
                 .forEach(date -> {
-                    var cell = headerRow.createCell(currentColumn.getAndIncrement());
+                    var col = currentColumn.getAndIncrement();
+                    var cell = headerRow.createCell(col);
                     var content = date.getDayOfMonth() + " " + WEEK_DAY_TRANSLATIONS.get(date.getDayOfWeek());
                     cell.setCellValue(content);
                     cell.setCellStyle(DEFAULT_STYLE);
                     if (date.getDayOfWeek().getValue() > 5) {
                         cell.setCellStyle(WEEKEND_STYLE);
                     }
+                    var dayRow = sheet.getRow(ScheduleProperties.DAY_SHIFT_PPL_COUNT_ROW);
+                    var nightRow = sheet.getRow(ScheduleProperties.NIGHT_SHIFT_PPL_COUNT_ROW);
+                    var dayPplCountCell = dayRow.createCell(col);
+                    var nightPplCountCell = nightRow.createCell(col);
+                    dayPplCountCell.setCellValue(3);
+                    dayPplCountCell.setCellStyle(DEFAULT_STYLE);
+                    nightPplCountCell.setCellValue(3);
+                    nightPplCountCell.setCellStyle(DEFAULT_STYLE);
                 });
         Stream.of("Count of D", "Count of N", "Count of V", "Count of W", "Total")
               .forEach(content -> {

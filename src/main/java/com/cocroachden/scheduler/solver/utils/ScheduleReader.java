@@ -7,6 +7,7 @@ import com.cocroachden.scheduler.solver.*;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.shell.boot.ComponentFlowCustomizer;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -15,14 +16,17 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class ScheduleReader {
 
     private final Vocabulary vocabulary;
+    private final ComponentFlowCustomizer shellCommonComponentFlowCustomizer;
 
-    public ScheduleReader(final Vocabulary vocabulary) {
+    public ScheduleReader(final Vocabulary vocabulary, final ComponentFlowCustomizer shellCommonComponentFlowCustomizer) {
         this.vocabulary = vocabulary;
+        this.shellCommonComponentFlowCustomizer = shellCommonComponentFlowCustomizer;
     }
 
     public EmployeeSchedule read(File inputFile) {
@@ -116,33 +120,33 @@ public class ScheduleReader {
     }
 
     private void createShiftAssignments(final XSSFSheet sheet, final EmployeeSchedule schedule) {
-        var employeesPerDayShift = sheet
-                .getRow(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.row())
-                .getCell(ScheduleProperties.PEOPLE_ON_DAY_SHIFT.column())
-                .getNumericCellValue();
-        var employeesPerNightShift = sheet
-                .getRow(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.row())
-                .getCell(ScheduleProperties.PEOPLE_ON_NIGHT_SHIFT.column())
-                .getNumericCellValue();
+        var currentColumn = new AtomicInteger(ScheduleProperties.SCHEDULE_TABLE_START.column() + 2);
         var assignments = new LinkedHashSet<ShiftAssignment>();
-        schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1)).forEach(date -> {
-            for (int i = 0; i < employeesPerDayShift; i++) {
-                assignments.add(
-                        new ShiftAssignment()
-                                .setDate(date)
-                                .setShiftType(ShiftType.DAY)
-                                .setId(new ShiftAssignmentId(date.toString() + ShiftType.DAY.name().charAt(0) + i))
-                );
-            }
-            for (int i = 0; i < employeesPerNightShift; i++) {
-                assignments.add(
-                        new ShiftAssignment()
-                                .setDate(date)
-                                .setShiftType(ShiftType.NIGHT)
-                                .setId(new ShiftAssignmentId(date.toString() + ShiftType.NIGHT.name().charAt(0) + i))
-                );
-            }
-        });
+        schedule.getStartDate().datesUntil(schedule.getEndDate().plusDays(1))
+                .forEach(date -> {
+                    var dayAssignments = sheet.getRow(ScheduleProperties.DAY_SHIFT_PPL_COUNT_ROW)
+                                              .getCell(currentColumn.get())
+                                              .getNumericCellValue();
+                    var nightAssignments = sheet.getRow(ScheduleProperties.NIGHT_SHIFT_PPL_COUNT_ROW)
+                                                .getCell(currentColumn.get())
+                                                .getNumericCellValue();
+                    for (int i = 0; i < dayAssignments; i++) {
+                        assignments.add(
+                                new ShiftAssignment()
+                                        .setDate(date)
+                                        .setShiftType(ShiftType.DAY)
+                                        .setId(new ShiftAssignmentId(date.toString() + ShiftType.DAY.name().charAt(0) + i))
+                        );
+                    }
+                    for (int i = 0; i < nightAssignments; i++) {
+                        assignments.add(
+                                new ShiftAssignment()
+                                        .setDate(date)
+                                        .setShiftType(ShiftType.NIGHT)
+                                        .setId(new ShiftAssignmentId(date.toString() + ShiftType.NIGHT.name().charAt(0) + i))
+                        );
+                    }
+                });
         schedule.setShiftAssignments(assignments);
     }
 
